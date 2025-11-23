@@ -47,7 +47,7 @@ export const Navbar = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 font-bold text-xl">
             <ShoppingBag className="h-6 w-6 text-primary" />
-            <span className="gradient-primary bg-clip-text text-transparent">
+            <span className="bg-gradient-to-br from-primary to-accent bg-clip-text">
               ReMarket
             </span>
           </Link>
