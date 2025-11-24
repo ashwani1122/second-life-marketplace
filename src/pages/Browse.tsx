@@ -3,9 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/ProductCard";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Search, Filter, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Filter, Loader, Search } from "lucide-react";
 
 interface Product {
   id: string;
@@ -139,7 +138,7 @@ const Browse = () => {
         {/* Products Grid */}
         {loading ? (
           <div className="flex justify-center items-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader className="animate-spin" />
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-20">

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Loader } from "lucide-react";
+
 import {
   Carousel,
   CarouselContent,
@@ -11,6 +11,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 
+import { Card, CardHeader, CardDescription } from "@/components/ui/card";
 
 export const ProductPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,28 +20,10 @@ export const ProductPage = () => {
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-    const slideData = [
-    {
-        title: "Mystic Mountains",
-        button: "Explore Component",
-        src: "https://images.unsplash.com/photo-1494806812796-244fe51b774d?q=80&w=3534&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    },
-    {
-        title: "Urban Dreams",
-        button: "Explore Component",
-        src: "https://images.unsplash.com/photo-1518710843675-2540dd79065c?q=80&w=3387&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    },
-    {
-        title: "Neon Nights",
-        button: "Explore Component",
-        src: "https://images.unsplash.com/photo-1590041794748-2d8eb73a571c?q=80&w=3456&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    },
-    {
-        title: "Desert Whispers",
-        button: "Explore Component",
-        src: "https://images.unsplash.com/photo-1679420437432-80cfbf88986c?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    },
-    ];
+
+  // ===============================
+  // Fetch Product + Images
+  // ===============================
   useEffect(() => {
     if (!id) return;
 
@@ -49,7 +32,7 @@ export const ProductPage = () => {
       setError(null);
 
       try {
-        // 1️⃣ Fetch product
+        // Fetch product
         const { data: productData, error: productError } = await supabase
           .from("products")
           .select("*")
@@ -59,7 +42,7 @@ export const ProductPage = () => {
         if (productError) throw productError;
         setProduct(productData);
 
-        // 2️⃣ Fetch product images
+        // Fetch product images
         const { data: imageRows, error: imagesError } = await supabase
           .from("product_images")
           .select("image_url")
@@ -67,12 +50,9 @@ export const ProductPage = () => {
 
         if (imagesError) throw imagesError;
 
-        // Extract image_url array
-        const urls = imageRows.map((row) => row.image_url);
-        setImages(urls);
-      } catch (e: any) {
-        setError(e?.message ?? "Unknown error");
-        setProduct(null);
+        setImages(imageRows.map((row) => row.image_url));
+      } catch (err: any) {
+        setError(err.message || "Something went wrong");
       } finally {
         setLoading(false);
       }
@@ -81,8 +61,16 @@ export const ProductPage = () => {
     fetchProduct();
   }, [id]);
 
+  // ===============================
+  // Helpers
+  // ===============================
   const formatCurrency = (value?: number) =>
-    value == null ? "-" : value.toLocaleString(undefined, { style: "currency", currency: "USD" });
+    value == null
+      ? "-"
+      : value.toLocaleString("en-US", {
+          style: "currency",
+          currency: "USD",
+        });
 
   const addToCart = () => {
     if (!product) return;
@@ -105,26 +93,127 @@ export const ProductPage = () => {
     }
   };
 
-  if (!id) return <div>Missing product id.</div>;
-  if (loading) return <div className="flex items-center justify-center h-screen">
-    <Loader className="animate-spin" />
-  </div>;
+  // ===============================
+  // UI States
+  // ===============================
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader className="animate-spin" />
+      </div>
+    );
+
   if (error) return <div>Error: {error}</div>;
   if (!product) return <div>Product not found.</div>;
 
-  return <div className=" flex item-center justify-center">
-            <Carousel orientation="horizontal" className="w-[30%] border border-gray-200 flex items-center justify-center h-100">
-      <CarouselContent>
-        {images.map((image, index) => (
-          <CarouselItem key={index} className="flex item-center justify-center h-100">
-            <img src={image} alt={product.title} />
-          </CarouselItem>
-        ))}
-      </CarouselContent>
-      <CarouselPrevious />
-        <CarouselNext />
-    </Carousel>
-  </div>
-  
-};
+  // ===============================
+  // UI Layout
+  // ===============================
+  return (
+    <div className="flex bg-gray-100 justify-center items-center gap-20 min-h-screen p-10">
+      
+      {/* LEFT SIDE */}
+      <div className="w-[30%] flex flex-col gap-4">
+        <h1 className="text-xl font-bold">{product.title}</h1>
 
+        {/* Carousel */}
+        <Carousel className="border rounded bg-white shadow-sm">
+          <CarouselContent>
+            {images.map((img, i) => (
+              <CarouselItem
+                key={i}
+                className="flex justify-center items-center"
+              >
+                <img
+                  src={img}
+                  alt={product.title}
+                  className="max-h-80 rounded object-cover"
+                />
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+
+          <CarouselPrevious />
+          <CarouselNext />
+        </Carousel>
+
+        {/* Buttons */}
+        <div className="flex gap-4 mt-2">
+          <button className="bg-green-600 text-white font-bold px-6 py-2 rounded shadow border border-green-700 w-full">
+            ₹ {product.price}
+          </button>
+
+          <button
+            onClick={addToCart}
+            className="bg-green-700 text-white font-bold px-6 py-2 rounded-full shadow border border-green-900 w-full"
+          >
+            ADD TO CART
+          </button>
+        </div>
+      </div>
+
+      {/* RIGHT SIDE */}
+      <div className="w-[30%]">
+        <Card className="shadow-md rounded-xl">
+          <CardHeader className="space-y-4 p-6">
+            
+            {/* PRODUCT TITLE */}
+            <CardDescription className="text-center text-lg font-semibold">
+              {product.title.toUpperCase()}
+            </CardDescription>
+
+            {/* Description */}
+            <div className="border p-3 rounded flex flex-col justify-between">
+              <span>Description:</span>
+              <textarea cols={50} rows={10} readOnly className="text-gray-600 p-2 rounded-md">
+                {product.description}
+              </textarea >
+            </div>
+
+            {/* Reason */}
+            <div className="border p-3 rounded flex justify-between">
+              <span>Reason for selling:</span>
+              <CardDescription className="bg-red-500 text-white text-xs px-2 py-1 rounded">
+                {product.reason_for_selling}
+              </CardDescription>
+            </div>
+
+            {/* Price */}
+            <div className="border p-3 rounded flex justify-between">
+              <span>Price:</span>
+              <CardDescription>{formatCurrency(product.price)}</CardDescription>
+            </div>
+
+            {/* Address */}
+            <div className="border p-3 rounded flex justify-between">
+              <span>Address:</span>
+              <CardDescription>
+                {product.location.toUpperCase()}
+              </CardDescription>
+            </div>
+
+            {/* Purchase Date */}
+            <div className="border p-3 rounded flex justify-between">
+              <span>Purchase Date:</span>
+              <CardDescription>
+                {product.purchase_date.toUpperCase()}
+              </CardDescription>
+            </div>
+
+            {/* ACTIVE STATUS */}
+            <div
+              className={`p-4 rounded-xl transition-all text-center font-bold text-white ${
+                product.status === "active"
+                  ? "bg-green-500 shadow-[0_0_12px_rgba(0,255,0,0.5)]"
+                  : "bg-gray-400"
+              }`}
+            >
+              {product.status === "active" ? "ACTIVE" : "INACTIVE"}
+            </div>
+
+          </CardHeader>
+        </Card>
+      </div>
+    </div>
+  );
+};
