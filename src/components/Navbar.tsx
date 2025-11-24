@@ -8,10 +8,11 @@ import { User as SupabaseUser } from "@supabase/supabase-js";
 export const Navbar = () => {
   const location = useLocation();
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  
+
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
-    // Check for saved theme preference
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
     if (savedTheme) {
       setTheme(savedTheme);

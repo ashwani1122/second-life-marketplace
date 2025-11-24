@@ -97,6 +97,7 @@ export type Database = {
           title: string
           updated_at: string | null
           view_count: number | null
+          image_url: [string]
         }
         Insert: {
           category_id: string
