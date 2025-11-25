@@ -8,18 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 
-/**
- * Profile component (full file)
- * - Reads profile from `profiles` table (falls back to auth user metadata)
- * - Uploads avatar to storage bucket (BUCKET) and upserts avatar_url into profiles
- * - Persists name/phone/location into profiles via upsert
- * - Appends cache-busting `?t=` param to show updated images immediately
- *
- * Notes:
- * - Ensure your Supabase Storage has a bucket named in `BUCKET` (default 'avatars').
- * - For public URLs use public bucket. For private buckets use signed URLs (server-side).
- */
-
 const BUCKET = "avatars"; // Change this if your bucket has a different name
 
 export default function Profile(): JSX.Element {
@@ -231,7 +219,6 @@ export default function Profile(): JSX.Element {
               <div className="rounded-full overflow-hidden w-36 h-36 bg-gradient-to-br from-indigo-500 to-pink-500 p-1">
                 <div className="rounded-full bg-white/90 w-full h-full flex items-center justify-center">
                   {avatarPreview ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={avatarPreview} alt="avatar" className="w-32 h-32 rounded-full object-cover" />
                   ) : (
                     <div className="w-32 h-32 rounded-full bg-slate-700 flex items-center justify-center text-3xl font-semibold text-white">

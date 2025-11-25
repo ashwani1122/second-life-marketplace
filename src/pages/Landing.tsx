@@ -58,7 +58,7 @@ const Landing = () => {
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Why Choose ReMarket?
+            Why Choose Nexo?
           </h2>
           
           <div className="grid md:grid-cols-3 gap-8">
@@ -112,7 +112,7 @@ const Landing = () => {
             ].map((category) => (
               <Link
                 key={category.name}
-                to={`/browse?category=${category.name.toLowerCase()}`}
+                to={`/browse?category=${(category.name).toLowerCase()}`}
                 className="group"
               >
                 <div className="p-6 rounded-xl bg-card shadow-card hover:shadow-elegant transition-smooth text-center">

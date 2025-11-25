@@ -127,8 +127,8 @@ export default function ProductPage() {
 
         {/* LEFT: Images (controlled carousel) */}
         <div className="lg:col-span-2 flex flex-col gap-4">
-          <div className="bg-white rounded-2xl shadow-lg p-4 border border-slate-700">
-            <div className="relative rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center h-96">
+          <div className="dark:bg-slate-800 bg-white rounded-2xl shadow-lg p-4 border border-slate-700">
+            <div className="relative rounded-lg overflow-hidden dark:bg-slate-700 bg-white flex items-center justify-center h-96">
               {images.length > 0 ? (
                 <img
                   src={images[index]}
@@ -145,14 +145,14 @@ export default function ProductPage() {
                   <button
                     onClick={prev}
                     aria-label="Previous image"
-                    className="absolute left-3  top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white p-2 rounded-full shadow"
+                    className="absolute left-3  top-1/2 -translate-y-1/2 dark:text-black bg-white/70 p-2 rounded-full shadow"
                   >
                     <ChevronLeft />
                   </button>
                   <button
                     onClick={next}
                     aria-label="Next image"
-                    className="absolute right-3  top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white p-2 rounded-full shadow"
+                    className="absolute right-3  top-1/2 -translate-y-1/2 dark:text-black bg-white/70 hover:bg-white p-2 rounded-full shadow"
                   >
                     <ChevronRight />
                   </button>
@@ -183,24 +183,27 @@ export default function ProductPage() {
 
           <div className="bg-white rounded-2xl shadow-lg p-4 border border-slate-700">
 
-            <div className="border border-gray-700 rounded-lg p-2">
+            <div className="border border-gray-700 rounded-lg p-2 dark:bg-slate-800 bg-white">
                 <h3 className="text-lg font-semibold ">About this item</h3>
                 <hr />
 
-            <p className="mt-2 text-slate-600 whitespace-pre-line text-sm">{product.description}</p>
+            <p className="mt-2 dark:text-gray-300 whitespace-pre-line text-sm text-justify">{product.description}</p>
             </div>
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-3 border border-slate-700 rounded-lg">
-                <div className="text-xs text-slate-700">Reason</div>
-                <div className="font-medium mt-1 text-sm">{product.reason_for_selling || "—"}</div>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 ">
+              <div className="p-3 border border-slate-700 rounded-lg dark:bg-slate-800">
+                <div className="text-lg font-semibold dark:bg-slate-800 bg-white">Reason</div>
+                <hr />
+                <div className="mt-2 dark:text-gray-300 whitespace-pre-line text-sm text-justify">{product.reason_for_selling || "—"}</div>
               </div>
-              <div className="p-3 border border-slate-700 rounded-lg">
-                <div className="text-xs text-slate-700">Purchased</div>
-                <div className="font-medium mt-1 text-sm">{product.purchase_date}</div>
+              <div className="p-3 border border-slate-700 rounded-lg dark:bg-slate-800 bg-white">
+                <div className="text-lg font-semibold">Purchased</div>
+                <hr />
+                <div className="mt-2 dark:text-gray-300 whitespace-pre-line text-sm text-justify">{product.purchase_date}</div>
               </div>
-              <div className="p-3 border border-slate-700 rounded-lg ">
-                <div className="text-xs text-slate-700">Location</div>
-                <div className="font-medium mt-1">{product.location}</div>
+              <div className="p-3 border border-slate-700 rounded-lg dark:bg-slate-800 bg-white">
+                <div className="text-lg font-semibold">Location</div>
+                <hr />
+                <div className=" mt-2 dark:text-gray-300 whitespace-pre-line text-sm text-justify">{product.location}</div>
               </div>
             </div>
           </div>
@@ -210,14 +213,13 @@ export default function ProductPage() {
         <aside className="w-full">
           <Card className="rounded-2xl sticky top-8 p-0 overflow-hidden">
             <CardHeader className="p-6 space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold">{product.title}</h2>
-                 
+              <div className=" flex justify-between gap-4 items-center ">
+                <div className="">
+                  <p className="text-sm font-semibold">{product.title}</p>
                 </div>
-
+                
                 <div className="text-right">
-                  <div className="text-xl font-bold">{formatCurrency(product.price)}</div>
+                  <div className="text-sm font-bold">{formatCurrency(product.price)}</div>
                 </div>
               </div>
 
@@ -238,15 +240,15 @@ export default function ProductPage() {
               <div className="grid grid-cols-1  gap-10 w-full">
                 <div className="flex flex-col border-2 border-slate-200 rounded ">
                   
-                  <div className="mt-1 font-medium flex justify-between p-2"><span>Condition :</span><span>{product.status}</span></div>
+                  <div className="mt-1 font-medium flex justify-between p-2"><span>Status </span><span>{product.status === "active" ? "Available" : "Unavailable"}</span></div>
                 </div>
                 <div className="flex flex-col flex flex-col border-2 border-slate-200 rounded ">
-                  <div className="mt-1 font-medium flex justify-between p-2"><span>Location :</span>{(product.location).toUpperCase()}</div>
+                  <div className="mt-1 font-medium flex justify-between p-2"><span>Location </span>{(product.location).toUpperCase()}</div>
                 </div>
               </div>
 
             </CardFooter>
-             <div className="text-sm text-slate-500 flex justify-between pl-6 flex  border-2 border-slate-200 rounded p-2 m-6"> <span>ID:</span>{product.id}<span></span></div>
+             <div className="text-sm text-slate-500 flex justify-between pl-6 flex  border-2 border-slate-200 rounded p-2 m-6"> <span className="dark:text-gray-300 whitespace-pre-line text-sm text-justify">ID:</span>{product.id}<span></span></div>
           </Card>
 
         </aside>

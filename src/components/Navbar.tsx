@@ -49,7 +49,7 @@ export const Navbar = () => {
           <Link to="/" className="flex items-center gap-2 font-bold text-xl">
             <ShoppingBag className="h-6 w-6 text-primary" />
             <span className="bg-gradient-to-br from-primary to-accent bg-clip-text">
-              ReMarket
+              Nexo
             </span>
           </Link>
 
