@@ -12,11 +12,21 @@ import {
 } from "@/components/ui/carousel";
 
 import { Card, CardHeader, CardDescription } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 
 export const ProductPage = () => {
   const { id } = useParams<{ id: string }>();
-
-  const [product, setProduct] = useState<any>(null);
+  interface Product {
+    id: string;
+    title: string;
+    description: string;
+    reason_for_selling: string;
+    price: number;
+    location: string;
+    purchase_date: string;
+    status: string;
+  }
+  const [product, setProduct] = useState<Product | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -163,8 +173,9 @@ export const ProductPage = () => {
             </CardDescription>
 
             {/* Description */}
+            <Label>Description</Label>
             <div className="border p-3 rounded flex flex-col justify-between">
-              <span>Description:</span>
+              
               <textarea cols={50} rows={10} readOnly className="text-gray-600 p-2 rounded-md">
                 {product.description}
               </textarea >

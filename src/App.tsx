@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 // import { ProductPage } from "./pages/ProductPage";
 import { CarouselDemo } from "./components/carousel";
 import { ProductPage } from "./pages/ProductPage";
+import { Profile } from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/browse" element={<Browse />} />
           <Route path="/sell" element={<Sell />} />
           <Route path="/product/:id" element={<ProductPage />} />
+          <Route path="/profile" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
