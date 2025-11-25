@@ -82,6 +82,15 @@ export const Navbar = () => {
               <Plus className="h-4 w-4" />
               Sell
             </Link>
+            <Link 
+              to="/cart"
+              className={`flex items-center gap-2 transition-smooth ${
+                isActive("/cart") ? "text-primary" : "text-foreground hover:text-primary"
+              }`}
+            >
+              <ShoppingBag className="h-4 w-4" />
+              Cart
+            </Link>
           </div>
 
           {/* Actions */}

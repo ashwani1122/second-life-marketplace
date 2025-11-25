@@ -8,6 +8,8 @@ import { Card, CardHeader, CardDescription, CardFooter } from "@/components/ui/c
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
+import { addToCart, readCart } from "@/utils/cart";
+import { toast } from "sonner";
 
 // Reworked ProductPage image handling — controlled carousel implementation
 
@@ -30,7 +32,6 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
-
   useEffect(() => {
     if (!id) return;
 
@@ -95,21 +96,18 @@ export default function ProductPage() {
       ? "-"
       : value.toLocaleString("en-IN", { style: "currency", currency: "INR" });
 
-  const addToCart = () => {
-    if (!product) return;
+  const handleAdd = () => {
+  addToCart({
+    id: product.id,
+    title: product.title,
+    price: product.price ?? 0,
+    quantity: 1,
+  });
 
-    try {
-      const raw = localStorage.getItem("cart");
-      const cart = raw ? JSON.parse(raw) : [];
-
-      cart.push({ id: product.id, title: product.title, price: product.price ?? 0, quantity: 1 });
-
-      localStorage.setItem("cart", JSON.stringify(cart));
-      alert("Added to cart!");
-    } catch {
-      alert("Failed to add to cart");
-    }
-  };
+  toast.success("Added to cart!", {
+    description: `${product.title} was added to your cart.`,
+  });
+};
 
   if (loading)
     return (
@@ -122,7 +120,7 @@ export default function ProductPage() {
   if (!product) return <div className="p-6">Product not found.</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-tr from-slate-50 to-white p-6 flex items-start justify-center">
+    <div className="min-h-screen  p-6 flex items-start justify-center dark:bg-black">
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         {/* LEFT: Images (controlled carousel) */}
@@ -224,12 +222,12 @@ export default function ProductPage() {
               </div>
 
               <div className="flex gap-3">
-                <Button className="flex-1" onClick={addToCart}>
+                <Button className="flex-1" onClick={handleAdd}>
                   <ShoppingCart className="mr-2" /> Add to cart
                 </Button>
 
                 <HoverBorderGradient containerClassName="rounded-full" as="button" className="px-4 py-2 bg-white/5 text-white flex items-center gap-2">
-                  <Heart size={16} /> Save
+                  <Heart size={16}  /> Save
                 </HoverBorderGradient>
               </div>
 
