@@ -186,6 +186,7 @@ export default function ProductPage() {
             <div className="border border-gray-700 rounded-lg p-2">
                 <h3 className="text-lg font-semibold ">About this item</h3>
                 <hr />
+
             <p className="mt-2 text-slate-600 whitespace-pre-line text-sm">{product.description}</p>
             </div>
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -239,7 +240,6 @@ export default function ProductPage() {
                   
                   <div className="mt-1 font-medium flex justify-between p-2"><span>Condition :</span><span>{product.status}</span></div>
                 </div>
-                  <hr />
                 <div className="flex flex-col flex flex-col border-2 border-slate-200 rounded ">
                   <div className="mt-1 font-medium flex justify-between p-2"><span>Location :</span>{(product.location).toUpperCase()}</div>
                 </div>
