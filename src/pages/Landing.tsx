@@ -2,12 +2,20 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ShoppingBag, Shield, Users, TrendingUp } from "lucide-react";
 import heroImage from "@/assets/hero-marketplace.jpg";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
+ 
 const Landing = () => {
-
-  const loogedIn = supabase.auth.getSession;
+  const [session, setSession] = useState(false);
+  useEffect(() => {
+    const fetchSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      setSession(data?.session);
+    };
+    fetchSession();
+  }, []);
+  
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -93,7 +101,6 @@ const Landing = () => {
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
             Popular Categories
           </h2>
-          
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {[
               { name: "Electronics", icon: "📱", color: "from-blue-500 to-cyan-500" },
@@ -121,8 +128,6 @@ const Landing = () => {
           </div>
         </div>
       </section>
-
-      {/* CTA Section */}
       <section className="py-20 gradient-hero">
         <div className="container mx-auto px-4 text-center text-white">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
@@ -131,10 +136,11 @@ const Landing = () => {
           <p className="text-xl mb-8 text-white/90">
             Join ReMarket today and discover amazing deals or turn your unused items into cash!
           </p>
-          <Link to={`${loogedIn}`?"/browse": "/auth"}>
-          {loogedIn? <Button  size="lg" className="bg-white text-primary hover:bg-white/90 shadow-elegant">
+        <Link to={session ? "/browse" : "/auth"}>
+          {session? <Button  size="lg" className="bg-white text-primary hover:bg-white/90 shadow-elegant">
               Get started
-            </Button>:<Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-elegant">
+            </Button>:
+            <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-elegant">
               Create Free Account
             </Button>}
            

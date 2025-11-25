@@ -93,8 +93,8 @@ export const Navbar = () => {
               className="transition-smooth"
             >
               {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+              
             </Button>
-
             {user ? (
               <Link to="/profile">
                 <Button variant="outline" size="sm" className="gap-2">

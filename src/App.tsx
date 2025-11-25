@@ -10,9 +10,8 @@ import Browse from "./pages/Browse";
 import Sell from "./pages/Sell";
 import NotFound from "./pages/NotFound";
 // import { ProductPage } from "./pages/ProductPage";
-import { CarouselDemo } from "./components/carousel";
-import { ProductPage } from "./pages/ProductPage";
-import { Profile } from "./pages/Profile";
+import Profile from "./pages/Profile";
+import ProductPage from "./pages/ProductPage";
 
 const queryClient = new QueryClient();
 
