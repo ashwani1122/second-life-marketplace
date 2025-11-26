@@ -29,7 +29,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/browse" element={<Browse />} />
           <Route path="/sell" element={<Sell />} />
-          <Route path="/product/:id" element={<ProductPage />} />
+          <Route path="/product/:id" element={<ProductPage />} /> 
           <Route path="/profile" element={<Profile />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
