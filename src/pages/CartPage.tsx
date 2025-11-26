@@ -24,19 +24,19 @@ export default function CartPage() {
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">Your cart</h1>
       {items.length === 0 ? (
-        <div className="text-slate-500">Your cart is empty.</div>
+        <div className="text-slate-500 dark:text-slate-400 ">Your cart is empty.</div>
       ) : (
         <div className="space-y-4">
           {items.map((it) => (
-            <div key={it.id} className="flex items-center justify-between bg-white p-4 rounded shadow">
+            <div key={it.id} className="flex items-center justify-between bg-white p-4 rounded shadow dark:bg-slate-800">
               <div>
-                <div className="font-medium">{it.title}</div>
+                <div className="font-medium ">{it.title}</div>
                 <div className="text-sm text-slate-500">₹{it.price.toLocaleString()}</div>
               </div>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  className="w-20 border rounded px-2 py-1"
+                  className="w-20 border rounded px-2 py-1 dark:bg-slate-800"
                   min={1}
                   value={it.quantity}
                   onChange={(e) => setQty(it.id, Math.max(1, Number(e.target.value)))}

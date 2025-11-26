@@ -125,13 +125,13 @@ export default function ProductPage() {
 
         {/* LEFT: Images (controlled carousel) */}
         <div className="lg:col-span-2 flex flex-col gap-4">
-          <div className="dark:bg-slate-800 bg-white rounded-2xl shadow-lg p-4 border border-slate-700">
-            <div className="relative rounded-lg overflow-hidden dark:bg-slate-700 bg-white flex items-center justify-center h-96">
+          <div className="dark:bg-slate-800 bg-white  shadow-lg p-4 border border-slate-700">
+            <div className="relative flex items-center justify-center h-96">
               {images.length > 0 ? (
                 <img
                   src={images[index]}
                   alt={`${product.title} ${index + 1}`}
-                  className="max-h-full max-w-full object-contain"
+                  className="max-h-full max-w-full object-contain rounded"
                 />
               ) : (
                 <div className="text-slate-400">No images available</div>
@@ -179,26 +179,26 @@ export default function ProductPage() {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-4 border border-slate-700">
+          <div className="bg-white  shadow-lg  dark:bg-black border border-slate-700">
 
-            <div className="border border-gray-700 rounded-lg p-2 dark:bg-slate-800 bg-white">
+            <div className=" p-2 dark:bg-slate-800 bg-white ">
                 <h3 className="text-lg font-semibold ">About this item</h3>
                 <hr />
 
             <p className="mt-2 dark:text-gray-300 whitespace-pre-line text-sm text-justify">{product.description}</p>
             </div>
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 ">
-              <div className="p-3 border border-slate-700 rounded-lg dark:bg-slate-800">
+              <div className="p-3 border border-slate-700  dark:bg-slate-800">
                 <div className="text-lg font-semibold dark:bg-slate-800 bg-white">Reason</div>
                 <hr />
                 <div className="mt-2 dark:text-gray-300 whitespace-pre-line text-sm text-justify">{product.reason_for_selling || "—"}</div>
               </div>
-              <div className="p-3 border border-slate-700 rounded-lg dark:bg-slate-800 bg-white">
+              <div className="p-3 border border-slate-700  dark:bg-slate-800 bg-white">
                 <div className="text-lg font-semibold">Purchased</div>
                 <hr />
                 <div className="mt-2 dark:text-gray-300 whitespace-pre-line text-sm text-justify">{product.purchase_date}</div>
               </div>
-              <div className="p-3 border border-slate-700 rounded-lg dark:bg-slate-800 bg-white">
+              <div className="p-3 border border-slate-700  dark:bg-slate-800 bg-white">
                 <div className="text-lg font-semibold">Location</div>
                 <hr />
                 <div className=" mt-2 dark:text-gray-300 whitespace-pre-line text-sm text-justify">{product.location}</div>
@@ -225,15 +225,12 @@ export default function ProductPage() {
                 <Button className="flex-1" onClick={handleAdd}>
                   <ShoppingCart className="mr-2" /> Add to cart
                 </Button>
-
                 <HoverBorderGradient containerClassName="rounded-full" as="button" className="px-4 py-2 bg-white/5 text-white flex items-center gap-2">
                   <Heart size={16}  /> Save
                 </HoverBorderGradient>
               </div>
-
               <div className="mt-2 text-xs text-slate-400">{product.status === "active" ? "Available" : "Unavailable"}</div>
             </CardHeader>
-
             <CardFooter className="p-6 bg-white/3 border-t">
               <div className="grid grid-cols-1  gap-10 w-full">
                 <div className="flex flex-col border-2 border-slate-200 rounded ">
@@ -246,7 +243,7 @@ export default function ProductPage() {
               </div>
 
             </CardFooter>
-             <div className="text-sm text-slate-500 flex justify-between pl-6 flex  border-2 border-slate-200 rounded p-2 m-6"> <span className="dark:text-gray-300 whitespace-pre-line text-sm text-justify">ID:</span>{product.id}<span></span></div>
+            <div className="text-sm text-slate-500 flex justify-between pl-6 flex  border-2 border-slate-200 rounded p-2 m-6"> <span className="dark:text-gray-300 whitespace-pre-line text-sm text-justify">ID:</span>{product.id}<span></span></div>
           </Card>
 
         </aside>
