@@ -1,7 +1,7 @@
 // ProductPageWithChat.tsx
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import {
   Loader,
   ShoppingCart,
@@ -25,14 +25,6 @@ import { addToCart } from "@/utils/cart";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-
-/**
- ProductPageWithChat (full file)
- - Place in src/pages/ProductPageWithChat.tsx
- - Requires Supabase tables: chats, messages, (optional) chat_typing
- - Create storage bucket name in ATTACHMENT_BUCKET or change the var
-*/
-
 interface Product {
   id: string;
   title: string;
@@ -57,12 +49,13 @@ type Profile = {
 const ATTACHMENT_BUCKET = "chat-attachments"; // change if needed
 
 const formatCurrency = (value?: number) =>
-  value == null ? "-" : value.toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
-
-/* ---------------------------
-  Stable / external ChatDrawer
-  (PREVENTS remounting on parent renders)
-----------------------------*/
+  value == null
+    ? "-"
+    : value.toLocaleString("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      });
 type ChatDrawerProps = {
   chatOpen: boolean;
   sellerName?: string | null;
@@ -71,12 +64,16 @@ type ChatDrawerProps = {
   messagesRef: React.RefObject<HTMLDivElement | null>;
   messageText: string;
   setMessageText: (s: string) => void;
-  onSendMessage: (content?: string, attachmentUrl?: string | null) => Promise<void>;
+  onSendMessage: (
+    content?: string,
+    attachmentUrl?: string | null
+  ) => Promise<void>;
   onAttachFile: (file: File | null) => Promise<void>;
   onClose: () => void;
   typingUsers: Record<string, number>;
   currentUserId: string | null;
   sending: boolean;
+  attachmentUploading: boolean;
 };
 
 const ChatDrawerInner: React.FC<ChatDrawerProps> = ({
@@ -116,32 +113,64 @@ const ChatDrawerInner: React.FC<ChatDrawerProps> = ({
       >
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
           <div className="flex-1">
-            <div className="font-semibold">Chat with {sellerName ?? "Seller"}</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">{productTitle}</div>
+            <div className="font-semibold">
+              Chat with {sellerName ?? "Seller"}
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              {productTitle}
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
             <X />
           </button>
         </div>
 
         <div className="flex-1 overflow-auto p-4" ref={messagesRef}>
           {messages.length === 0 ? (
-            <div className="text-center text-sm text-slate-500 mt-8">No messages yet — say hi 👋</div>
+            <div className="text-center text-sm text-slate-500 mt-8">
+              No messages yet — say hi 👋
+            </div>
           ) : (
             messages.map((m) => {
               const mine = m.sender_id === currentUserId;
               return (
-                <div key={m.id} className={`mb-3 flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[85%] p-3 rounded-2xl ${mine ? "bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"}`}>
+                <div
+                  key={m.id}
+                  className={`mb-3 flex ${
+                    mine ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-[85%] p-3 rounded-2xl ${
+                      mine
+                        ? "bg-indigo-600 text-white"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"
+                    }`}
+                  >
                     {m.attachment_url ? (
-                      <a href={m.attachment_url} target="_blank" rel="noreferrer" className="block mb-2 underline">
+                      <a
+                        href={m.attachment_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block mb-2 underline"
+                      >
                         <div className="flex items-center gap-2">
                           <ImageIcon /> Attachment
                         </div>
                       </a>
                     ) : null}
-                    {m.content ? <div className="whitespace-pre-wrap">{m.content}</div> : null}
-                    <div className="text-[11px] mt-2 opacity-70 text-right">{m.created_at ? new Date(m.created_at).toLocaleTimeString() : ""} {mine && (m.read ? "✓✓" : "✓")}</div>
+                    {m.content ? (
+                      <div className="whitespace-pre-wrap">{m.content}</div>
+                    ) : null}
+                    <div className="text-[11px] mt-2 opacity-70 text-right">
+                      {m.created_at
+                        ? new Date(m.created_at).toLocaleTimeString()
+                        : ""}{" "}
+                      {mine && (m.read ? "✓✓" : "✓")}
+                    </div>
                   </div>
                 </div>
               );
@@ -150,7 +179,10 @@ const ChatDrawerInner: React.FC<ChatDrawerProps> = ({
         </div>
 
         <div className="px-4 pb-2">
-          {Object.keys(typingUsers).filter((uid) => uid !== currentUserId).length > 0 && <div className="text-xs text-slate-500 mb-2">Seller is typing…</div>}
+          {Object.keys(typingUsers).filter((uid) => uid !== currentUserId)
+            .length > 0 && (
+            <div className="text-xs text-slate-500 mb-2">Seller is typing…</div>
+          )}
         </div>
 
         <div className="p-4 border-t border-slate-100 dark:border-slate-800">
@@ -175,18 +207,28 @@ const ChatDrawerInner: React.FC<ChatDrawerProps> = ({
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  if (messageText.trim()) onSendMessage(messageText.trim(), null);
+                  if (messageText.trim())
+                    onSendMessage(messageText.trim(), null);
                 }
               }}
               placeholder="Write a message..."
               className="flex-1 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-2 bg-transparent outline-none text-sm"
             />
 
-            <Button size="sm" onClick={() => { if (messageText.trim()) onSendMessage(messageText.trim(), null); }} disabled={sending}>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (messageText.trim()) onSendMessage(messageText.trim(), null);
+              }}
+              disabled={sending}
+            >
               <Send />
             </Button>
           </div>
-          <div className="mt-2 text-xs text-slate-400">Messages are stored securely. Please avoid sharing sensitive data in chat.</div>
+          <div className="mt-2 text-xs text-slate-400">
+            Messages are stored securely. Please avoid sharing sensitive data in
+            chat.
+          </div>
         </div>
       </motion.aside>
     </AnimatePresence>
@@ -202,6 +244,7 @@ export default function ProductPageWithChat(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
@@ -233,14 +276,23 @@ export default function ProductPageWithChat(): JSX.Element {
       setLoading(true);
       setError(null);
       try {
-        const { data: prodData, error: prodErr } = await supabase.from("products").select("*").eq("id", id).single();
+        const { data: prodData, error: prodErr } = await supabase
+          .from("products")
+          .select("*")
+          .eq("id", id)
+          .single();
         if (prodErr) throw prodErr;
         if (!mounted) return;
         setProduct(prodData as Product);
 
-        const { data: imageRows, error: imagesErr } = await supabase.from("product_images").select("image_url").eq("product_id", id);
+        const { data: imageRows, error: imagesErr } = await supabase
+          .from("product_images")
+          .select("image_url")
+          .eq("product_id", id);
         if (imagesErr) throw imagesErr;
-        setImages((imageRows || []).map((r: any) => r.image_url).filter(Boolean));
+        setImages(
+          (imageRows || []).map((r: any) => r.image_url).filter(Boolean)
+        );
         setIndex(0);
 
         const sellerId = (prodData as any)?.seller_id;
@@ -279,38 +331,50 @@ export default function ProductPageWithChat(): JSX.Element {
     const onKey = (e: KeyboardEvent) => {
       if (!images || images.length === 0) return;
       if (e.key === "ArrowRight") setIndex((i) => (i + 1) % images.length);
-      if (e.key === "ArrowLeft") setIndex((i) => (i - 1 + images.length) % images.length);
+      if (e.key === "ArrowLeft")
+        setIndex((i) => (i - 1 + images.length) % images.length);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [images]);
 
-  const prev = () => images.length > 0 && setIndex((i) => (i - 1 + images.length) % images.length);
-  const next = () => images.length > 0 && setIndex((i) => (i + 1) % images.length);
+  const prev = () =>
+    images.length > 0 &&
+    setIndex((i) => (i - 1 + images.length) % images.length);
+  const next = () =>
+    images.length > 0 && setIndex((i) => (i + 1) % images.length);
 
   const handleAdd = () => {
     if (!product) return;
-    addToCart({ id: product.id, title: product.title, price: product.price ?? 0, quantity: 1 });
-    toast.success("Added to cart", { description: `${product.title} is now in your cart.` });
+    addToCart({
+      id: product.id,
+      title: product.title,
+      price: product.price ?? 0,
+      quantity: 1,
+    });
+    toast.success("Added to cart", {
+      description: `${product.title} is now in your cart.`,
+    });
   };
-
-  /* ----------------- CHAT helpers ----------------- */
   const loadMessages = useCallback(async (cId: string) => {
     try {
       const { data } = await supabase
         .from("messages")
-        .select("id, chat_id, sender_id, content, attachment_url, read, created_at")
+        .select(
+          "id, chat_id, sender_id, content, attachment_url, read, created_at"
+        )
         .eq("chat_id", cId)
         .order("created_at", { ascending: true })
         .limit(500);
       setMessages(data || []);
-      setTimeout(() => { if (messagesRef.current) messagesRef.current.scrollTop = messagesRef.current.scrollHeight; }, 60);
+      setTimeout(() => {
+        if (messagesRef.current)
+          messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+      }, 60);
     } catch (err) {
       console.error("loadMessages", err);
     }
   }, []);
-
-  // subscribe using supabase.channel (v2)
   const subscribeToMessages = useCallback((cId: string) => {
     // cleanup previous
     try {
@@ -327,13 +391,21 @@ export default function ProductPageWithChat(): JSX.Element {
       .channel(`messages-chat-${cId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${cId}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `chat_id=eq.${cId}`,
+        },
         (payload: any) => {
           setMessages((m) => {
             if (m.some((x) => x.id === payload.new.id)) return m;
             return [...m, payload.new];
           });
-          setTimeout(() => { if (messagesRef.current) messagesRef.current.scrollTop = messagesRef.current.scrollHeight; }, 60);
+          setTimeout(() => {
+            if (messagesRef.current)
+              messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+          }, 60);
         }
       )
       .subscribe();
@@ -356,17 +428,34 @@ export default function ProductPageWithChat(): JSX.Element {
       .channel(`typing-chat-${cId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_typing", filter: `chat_id=eq.${cId}` },
-        (payload: any) => setTypingUsers((t) => ({ ...t, [payload.new.user_id]: Date.now() }))
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "chat_typing",
+          filter: `chat_id=eq.${cId}`,
+        },
+        (payload: any) =>
+          setTypingUsers((t) => ({ ...t, [payload.new.user_id]: Date.now() }))
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "chat_typing", filter: `chat_id=eq.${cId}` },
-        (payload: any) => setTypingUsers((t) => ({ ...t, [payload.new.user_id]: Date.now() }))
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "chat_typing",
+          filter: `chat_id=eq.${cId}`,
+        },
+        (payload: any) =>
+          setTypingUsers((t) => ({ ...t, [payload.new.user_id]: Date.now() }))
       )
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "chat_typing", filter: `chat_id=eq.${cId}` },
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "chat_typing",
+          filter: `chat_id=eq.${cId}`,
+        },
         (payload: any) =>
           setTypingUsers((t) => {
             const copy = { ...t };
@@ -379,14 +468,52 @@ export default function ProductPageWithChat(): JSX.Element {
     typingChannelRef.current = channel;
   }, []);
 
-  const markMessagesAsRead = useCallback(async (cId: string) => {
-    if (!currentUserId) return;
-    try {
-      await supabase.from("messages").update({ read: true }).eq("chat_id", cId).neq("sender_id", currentUserId);
-    } catch (err) {
-      console.error("markMessagesAsRead", err);
+  const markMessagesAsRead = useCallback(
+    async (cId: string) => {
+      if (!currentUserId) return;
+      try {
+        await supabase
+          .from("messages")
+          .update({ read: true })
+          .eq("chat_id", cId)
+          .neq("sender_id", currentUserId);
+      } catch (err) {
+        console.error("markMessagesAsRead", err);
+      }
+    },
+    [currentUserId]
+  );
+
+  useEffect(() => {
+    const state = location.state as { openChatId?: string } | undefined;
+    const externalChatId = state?.openChatId; // Only run if data is loaded, user is logged in, chat is closed, and we have an ID from navigation
+
+    if (!loading && currentUserId && !chatOpen && externalChatId) {
+      const openExistingChat = async () => {
+        setChatOpen(true);
+        setChatId(externalChatId); // Call your existing chat handling functions
+        await loadMessages(externalChatId);
+        subscribeToMessages(externalChatId);
+        subscribeToTyping(externalChatId);
+        markMessagesAsRead(externalChatId);
+      };
+
+      openExistingChat();
     }
-  }, [currentUserId]);
+  }, [
+    loading,
+    currentUserId,
+    chatOpen,
+    location.state,
+    loadMessages,
+    subscribeToMessages,
+    subscribeToTyping,
+    markMessagesAsRead,
+  ]);
+
+  /* ----------------- CHAT helpers ----------------- */
+
+  // subscribe using supabase.channel (v2)
 
   const openChat = useCallback(async () => {
     if (!product) return;
@@ -416,7 +543,13 @@ export default function ProductPageWithChat(): JSX.Element {
       let idToUse: string | null = null;
       if (existing && existing.length > 0) idToUse = existing[0].id;
       else {
-        const { data: newChat, error: chatErr } = await supabase.from("chats").insert([{ product_id: product.id, seller_id: sellerId, buyer_id: buyerId }]).select().single();
+        const { data: newChat, error: chatErr } = await supabase
+          .from("chats")
+          .insert([
+            { product_id: product.id, seller_id: sellerId, buyer_id: buyerId },
+          ])
+          .select()
+          .single();
         if (chatErr) throw chatErr;
         idToUse = newChat.id;
       }
@@ -430,60 +563,106 @@ export default function ProductPageWithChat(): JSX.Element {
       console.error(err);
       toast.error(err?.message || "Failed to start chat");
     }
-  }, [product, currentUserId, loadMessages, subscribeToMessages, subscribeToTyping, markMessagesAsRead]);
+  }, [
+    product,
+    currentUserId,
+    loadMessages,
+    subscribeToMessages,
+    subscribeToTyping,
+    markMessagesAsRead,
+  ]);
 
-  const sendMessage = useCallback(async (content?: string, attachmentUrl?: string | null) => {
-    if (!chatId) return;
-    if (!currentUserId) {
-      toast.error("Sign in to send messages.");
-      return;
-    }
-    if (!content && !attachmentUrl) return;
-
-    setSending(true);
-    try {
-      const payload: any = { chat_id: chatId, sender_id: currentUserId, content: content ?? null, attachment_url: attachmentUrl ?? null };
-      const { data, error } = await supabase.from("messages").insert([payload]).select().single();
-      if (error) throw error;
-      setMessages((m) => [...m, data]);
-      setMessageText("");
-      setTimeout(() => { if (messagesRef.current) messagesRef.current.scrollTop = messagesRef.current.scrollHeight; }, 60);
-    } catch (err: any) {
-      console.error("sendMessage", err);
-      toast.error(err?.message || "Failed to send message");
-    } finally {
-      setSending(false);
-      // clear typing presence when sending
-      try { await supabase.from("chat_typing").delete().match({ chat_id: chatId, user_id: currentUserId }); } catch {}
-      typingActiveRef.current = false;
-      if (typingTimerRef.current) { window.clearTimeout(typingTimerRef.current); typingTimerRef.current = null; }
-    }
-  }, [chatId, currentUserId]);
-
-  const handleAttachFile = useCallback(async (file: File | null) => {
-    if (!file || !chatId || !currentUserId) return;
-    setAttachmentUploading(true);
-    try {
-      const ext = file.name.split(".").pop();
-      const key = `${chatId}/${currentUserId}_${Date.now()}.${ext}`;
-      const { error: uploadErr } = await supabase.storage.from(ATTACHMENT_BUCKET).upload(key, file, { upsert: true });
-      if (uploadErr) {
-        if ((uploadErr as any).message?.toLowerCase()?.includes("bucket not found") || (uploadErr as any).status === 404) {
-          throw new Error(`Storage bucket "${ATTACHMENT_BUCKET}" not found. Create it in Supabase Storage or change ATTACHMENT_BUCKET in code.`);
-        }
-        throw uploadErr;
+  const sendMessage = useCallback(
+    async (content?: string, attachmentUrl?: string | null) => {
+      if (!chatId) return;
+      if (!currentUserId) {
+        toast.error("Sign in to send messages.");
+        return;
       }
-      const { data: pub } = supabase.storage.from(ATTACHMENT_BUCKET).getPublicUrl(key);
-      const publicUrl = (pub as any)?.publicUrl ?? (pub as any)?.public_url ?? null;
-      if (!publicUrl) throw new Error("Failed to obtain public URL for attachment.");
-      await sendMessage("", publicUrl);
-    } catch (err: any) {
-      console.error("handleAttachFile", err);
-      toast.error(err?.message || "Attachment failed");
-    } finally {
-      setAttachmentUploading(false);
-    }
-  }, [chatId, currentUserId, sendMessage]);
+      if (!content && !attachmentUrl) return;
+
+      setSending(true);
+      try {
+        const payload: any = {
+          chat_id: chatId,
+          sender_id: currentUserId,
+          content: content ?? null,
+          attachment_url: attachmentUrl ?? null,
+        };
+        const { data, error } = await supabase
+          .from("messages")
+          .insert([payload])
+          .select()
+          .single();
+        if (error) throw error;
+        setMessages((m) => [...m, data]);
+        setMessageText("");
+        setTimeout(() => {
+          if (messagesRef.current)
+            messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+        }, 60);
+      } catch (err: any) {
+        console.error("sendMessage", err);
+        toast.error(err?.message || "Failed to send message");
+      } finally {
+        setSending(false);
+        // clear typing presence when sending
+        try {
+          await supabase
+            .from("chat_typing")
+            .delete()
+            .match({ chat_id: chatId, user_id: currentUserId });
+        } catch {}
+        typingActiveRef.current = false;
+        if (typingTimerRef.current) {
+          window.clearTimeout(typingTimerRef.current);
+          typingTimerRef.current = null;
+        }
+      }
+    },
+    [chatId, currentUserId]
+  );
+
+  const handleAttachFile = useCallback(
+    async (file: File | null) => {
+      if (!file || !chatId || !currentUserId) return;
+      setAttachmentUploading(true);
+      try {
+        const ext = file.name.split(".").pop();
+        const key = `${chatId}/${currentUserId}_${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from(ATTACHMENT_BUCKET)
+          .upload(key, file, { upsert: true });
+        if (uploadErr) {
+          if (
+            (uploadErr as any).message
+              ?.toLowerCase()
+              ?.includes("bucket not found") ||
+            (uploadErr as any).status === 404
+          ) {
+            throw new Error(
+              `Storage bucket "${ATTACHMENT_BUCKET}" not found. Create it in Supabase Storage or change ATTACHMENT_BUCKET in code.`
+            );
+          }
+          throw uploadErr;
+        }
+        const { data: pub } = supabase.storage
+          .from(ATTACHMENT_BUCKET)
+          .getPublicUrl(key);
+        const publicUrl =
+          (pub as any)?.publicUrl ?? (pub as any)?.public_url ?? null;
+        if (!publicUrl)
+          throw new Error("Failed to obtain public URL for attachment.");
+        await sendMessage("", publicUrl);
+      } catch (err: any) {
+        console.error("handleAttachFile", err);
+        toast.error(err?.message || "Attachment failed");
+      } finally {
+        setAttachmentUploading(false);
+      }
+    },
+    [chatId, currentUserId, sendMessage]
+  );
 
   // Debounced typing: only send upsert once per burst, and delete after inactivity
   const notifyTypingStart = useCallback(() => {
@@ -494,7 +673,12 @@ export default function ProductPageWithChat(): JSX.Element {
         window.clearTimeout(typingTimerRef.current);
       }
       typingTimerRef.current = window.setTimeout(async () => {
-        try { await supabase.from("chat_typing").delete().match({ chat_id: chatId, user_id: currentUserId }); } catch {}
+        try {
+          await supabase
+            .from("chat_typing")
+            .delete()
+            .match({ chat_id: chatId, user_id: currentUserId });
+        } catch {}
         typingActiveRef.current = false;
         typingTimerRef.current = null;
       }, 1500);
@@ -505,15 +689,29 @@ export default function ProductPageWithChat(): JSX.Element {
     typingActiveRef.current = true;
     (async () => {
       try {
-        await supabase.from("chat_typing").upsert({ chat_id: chatId, user_id: currentUserId, updated_at: new Date().toISOString() });
+        await supabase
+          .from("chat_typing")
+          .upsert({
+            chat_id: chatId,
+            user_id: currentUserId,
+            updated_at: new Date().toISOString(),
+          });
       } catch (err) {
         console.error("typing upsert failed", err);
       }
     })();
 
-    if (typingTimerRef.current) { window.clearTimeout(typingTimerRef.current); typingTimerRef.current = null; }
+    if (typingTimerRef.current) {
+      window.clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
     typingTimerRef.current = window.setTimeout(async () => {
-      try { await supabase.from("chat_typing").delete().match({ chat_id: chatId, user_id: currentUserId }); } catch {}
+      try {
+        await supabase
+          .from("chat_typing")
+          .delete()
+          .match({ chat_id: chatId, user_id: currentUserId });
+      } catch {}
       typingActiveRef.current = false;
       typingTimerRef.current = null;
     }, 1500);
@@ -525,7 +723,10 @@ export default function ProductPageWithChat(): JSX.Element {
     setMessages([]);
     setChatId(null);
     typingActiveRef.current = false;
-    if (typingTimerRef.current) { window.clearTimeout(typingTimerRef.current); typingTimerRef.current = null; }
+    if (typingTimerRef.current) {
+      window.clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
     try {
       if (messagesChannelRef.current) {
         messagesChannelRef.current.unsubscribe();
@@ -563,19 +764,32 @@ export default function ProductPageWithChat(): JSX.Element {
       <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-[#0B0F19]">
         <div className="flex flex-col items-center gap-4">
           <Loader className="animate-spin text-indigo-600 w-8 h-8" />
-          <p className="text-sm text-slate-500 font-medium">Loading details...</p>
+          <p className="text-sm text-slate-500 font-medium">
+            Loading details...
+          </p>
         </div>
       </div>
     );
   }
 
-  if (error) return <div className="p-10 text-center text-red-500 bg-red-50 rounded-lg m-10">Error: {error}</div>;
-  if (!product) return <div className="p-10 text-center text-slate-500">Product not found.</div>;
+  if (error)
+    return (
+      <div className="p-10 text-center text-red-500 bg-red-50 rounded-lg m-10">
+        Error: {error}
+      </div>
+    );
+  if (!product)
+    return (
+      <div className="p-10 text-center text-slate-500">Product not found.</div>
+    );
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 font-sans selection:bg-indigo-500/30">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <Link to="/browse" className="text-sm text-slate-500 hover:text-indigo-600 flex items-center gap-1 transition-colors">
+        <Link
+          to="/browse"
+          className="text-sm text-slate-500 hover:text-indigo-600 flex items-center gap-1 transition-colors"
+        >
           <ChevronLeft size={14} /> Back to Browse
         </Link>
       </nav>
@@ -585,15 +799,30 @@ export default function ProductPageWithChat(): JSX.Element {
           <div className="lg:col-span-7 space-y-6">
             <div className="relative aspect-[4/3] bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm group">
               <AnimatePresence mode="wait">
-                <motion.img key={index} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} src={images.length > 0 ? images[index] : "/placeholder.png"} alt={product.title} className="w-full h-full object-contain p-4" />
+                <motion.img
+                  key={index}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  src={images.length > 0 ? images[index] : "/placeholder.png"}
+                  alt={product.title}
+                  className="w-full h-full object-contain p-4"
+                />
               </AnimatePresence>
 
               {images.length > 1 && (
                 <>
-                  <button onClick={prev} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-800/90 p-2.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 active:scale-95 text-slate-900 dark:text-white">
+                  <button
+                    onClick={prev}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-800/90 p-2.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 active:scale-95 text-slate-900 dark:text-white"
+                  >
                     <ChevronLeft size={20} />
                   </button>
-                  <button onClick={next} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-800/90 p-2.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 active:scale-95 text-slate-900 dark:text-white">
+                  <button
+                    onClick={next}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-800/90 p-2.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 active:scale-95 text-slate-900 dark:text-white"
+                  >
                     <ChevronRight size={20} />
                   </button>
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full">
@@ -606,17 +835,33 @@ export default function ProductPageWithChat(): JSX.Element {
             {images.length > 0 && (
               <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                 {images.map((img, i) => (
-                  <button key={i} onClick={() => setIndex(i)} className={`relative w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all duration-200 ${index === i ? "border-indigo-600 shadow-md scale-105" : "border-transparent opacity-70 hover:opacity-100"}`}>
-                    <img src={img} alt={`View ${i}`} className="w-full h-full object-cover bg-white dark:bg-slate-900" />
+                  <button
+                    key={i}
+                    onClick={() => setIndex(i)}
+                    className={`relative w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                      index === i
+                        ? "border-indigo-600 shadow-md scale-105"
+                        : "border-transparent opacity-70 hover:opacity-100"
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`View ${i}`}
+                      className="w-full h-full object-cover bg-white dark:bg-slate-900"
+                    />
                   </button>
                 ))}
               </div>
             )}
 
             <div className="hidden lg:block space-y-6 pt-6">
-              <h3 className="text-xl font-bold border-b border-slate-200 dark:border-slate-800 pb-3">Description</h3>
+              <h3 className="text-xl font-bold border-b border-slate-200 dark:border-slate-800 pb-3">
+                Description
+              </h3>
               <div className="prose prose-slate dark:prose-invert max-w-none">
-                <p className="whitespace-pre-line text-slate-600 dark:text-slate-300 leading-relaxed text-base">{product.description}</p>
+                <p className="whitespace-pre-line text-slate-600 dark:text-slate-300 leading-relaxed text-base">
+                  {product.description}
+                </p>
               </div>
             </div>
           </div>
@@ -625,8 +870,12 @@ export default function ProductPageWithChat(): JSX.Element {
             <div className="space-y-4">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 tracking-wider uppercase">{product.category}</span>
-                  <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white leading-tight">{product.title}</h1>
+                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 tracking-wider uppercase">
+                    {/* {product.} */}
+                  </span>
+                  <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white leading-tight">
+                    {product.title}
+                  </h1>
                 </div>
                 <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors">
                   <Share2 size={20} />
@@ -634,12 +883,22 @@ export default function ProductPageWithChat(): JSX.Element {
               </div>
 
               <div className="flex items-baseline gap-3">
-                <span className="text-4xl font-bold text-slate-900 dark:text-white">{formatCurrency(product.price)}</span>
-                <span className="text-lg text-slate-400 line-through font-medium">{formatCurrency((product.price || 0) * 1.2)}</span>
+                <span className="text-4xl font-bold text-slate-900 dark:text-white">
+                  {formatCurrency(product.price)}
+                </span>
+                <span className="text-lg text-slate-400 line-through font-medium">
+                  {formatCurrency((product.price || 0) * 1.2)}
+                </span>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${product.status === "active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-red-100 text-red-700"}`}>
+                <div
+                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${
+                    product.status === "active"
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
                   <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                   {product.status === "active" ? "Available" : "Sold Out"}
                 </div>
@@ -648,84 +907,138 @@ export default function ProductPageWithChat(): JSX.Element {
                 </div>
               </div>
             </div>
-
             <Separator className="bg-slate-200 dark:bg-slate-800" />
-
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button size="lg" className="flex-1 h-12 text-base bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 rounded-xl transition-all hover:scale-[1.02]" onClick={handleAdd} disabled={product.status !== "active"}>
-                <ShoppingCart className="mr-2 h-5 w-5" /> {product.status === "active" ? "Add to Cart" : "Unavailable"}
+              <Button
+                size="lg"
+                className="flex-1 h-12 text-base bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 rounded-xl transition-all hover:scale-[1.02]"
+                onClick={handleAdd}
+                disabled={product.status !== "active"}
+              >
+                <ShoppingCart className="mr-2 h-5 w-5" />{" "}
+                {product.status === "active" ? "Add to Cart" : "Unavailable"}
               </Button>
-
-              <Button size="lg" variant="outline" className="h-12 px-6 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl">
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-12 px-6 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl"
+              >
                 <Heart className="h-5 w-5 text-slate-500 hover:text-red-500 transition-colors" />
               </Button>
             </div>
-
             <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex items-start gap-3">
-              <ShieldCheck className="text-emerald-500 shrink-0 mt-0.5" size={20} />
+              <ShieldCheck
+                className="text-emerald-500 shrink-0 mt-0.5"
+                size={20}
+              />
               <div>
-                <h4 className="text-sm font-bold text-slate-900 dark:text-white">Buyer Protection</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Your purchase is secured. Funds are held in escrow until you verify the item.</p>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Buyer Protection
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Your purchase is secured. Funds are held in escrow until you
+                  verify the item.
+                </p>
               </div>
             </div>
-
-            {/* Owner Card */}
             <div className="rounded-2xl p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                  {sellerProfile?.avatar_url ? <img src={sellerProfile.avatar_url} alt={sellerProfile.full_name || "seller"} className="w-full h-full object-cover" /> : <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{(sellerProfile?.full_name?.charAt(0) || "S").toUpperCase()}</div>}
+                  {sellerProfile?.avatar_url ? (
+                    <img
+                      src={sellerProfile.avatar_url}
+                      alt={sellerProfile.full_name || "seller"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                      {(
+                        sellerProfile?.full_name?.charAt(0) || "S"
+                      ).toUpperCase()}
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1">
-                  <div className="font-semibold">{sellerProfile?.full_name ?? "Seller"}</div>
-                  <div className="text-sm text-slate-500 dark:text-slate-400">{sellerProfile?.location ?? "Location hidden"}</div>
+                  <div className="font-semibold">
+                    {sellerProfile?.full_name ?? "Seller"}
+                  </div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                    {sellerProfile?.location ?? "Location hidden"}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-400">Contact</div>
-                  <div className="text-sm font-medium">{sellerProfile?.phone ?? <span className="text-xs text-slate-400">Hidden</span>}</div>
+                  <div className="text-sm font-medium">
+                    {sellerProfile?.phone ?? (
+                      <span className="text-xs text-slate-400">Hidden</span>
+                    )}
+                  </div>
                 </div>
               </div>
-
               <div className="mt-4 flex gap-2">
-                <Button size="sm" className="flex-1" onClick={openChat} disabled={!currentUserId || product?.seller_id === currentUserId}>
+                <Button
+                  size="sm"
+                  className="flex-1"
+                  onClick={openChat}
+                  disabled={
+                    !currentUserId || product?.seller_id === currentUserId
+                  }
+                >
                   <MessageSquare className="mr-2" /> Start Chat
                 </Button>
-                <Link to={`/seller/${product?.seller_id}`} className="hidden sm:inline-flex">
-                  <Button size="sm" variant="outline">View Profile</Button>
+                <Link
+                  to={`/seller/${product?.seller_id}`}
+                  className="hidden sm:inline-flex"
+                >
+                  <Button size="sm" variant="outline">
+                    View Profile
+                  </Button>
                 </Link>
               </div>
-
               <div className="mt-3 text-xs text-slate-400">
                 <div>Email: Hidden — ask in chat</div>
               </div>
             </div>
-
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
               <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-3 border-b border-slate-200 dark:border-slate-800">
                 <h3 className="font-semibold text-sm">Item Details</h3>
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 <div className="grid grid-cols-3 p-4">
-                  <span className="text-sm text-slate-500 flex items-center gap-2"><Info size={14} /> Condition</span>
-                  <span className="col-span-2 text-sm font-medium text-slate-900 dark:text-white text-right">Good (Used)</span>
+                  <span className="text-sm text-slate-500 flex items-center gap-2">
+                    <Info size={14} /> Condition
+                  </span>
+                  <span className="col-span-2 text-sm font-medium text-slate-900 dark:text-white text-right">
+                    Good (Used)
+                  </span>
                 </div>
                 <div className="grid grid-cols-3 p-4">
-                  <span className="text-sm text-slate-500 flex items-center gap-2"><Calendar size={14} /> Purchased</span>
-                  <span className="col-span-2 text-sm font-medium text-slate-900 dark:text-white text-right">{product.purchase_date || "Unknown"}</span>
+                  <span className="text-sm text-slate-500 flex items-center gap-2">
+                    <Calendar size={14} /> Purchased
+                  </span>
+                  <span className="col-span-2 text-sm font-medium text-slate-900 dark:text-white text-right">
+                    {product.purchase_date || "Unknown"}
+                  </span>
                 </div>
                 <div className="grid grid-cols-3 p-4">
                   <span className="text-sm text-slate-500">Reason</span>
-                  <span className="col-span-2 text-sm font-medium text-slate-900 dark:text-white text-right">{product.reason_for_selling || "Upgrade"}</span>
+                  <span className="col-span-2 text-sm font-medium text-slate-900 dark:text-white text-right">
+                    {product.reason_for_selling || "Upgrade"}
+                  </span>
                 </div>
                 <div className="grid grid-cols-3 p-4">
                   <span className="text-sm text-slate-500">Listing ID</span>
-                  <span className="col-span-2 text-xs font-mono text-slate-400 text-right truncate pl-4">{product.id}</span>
+                  <span className="col-span-2 text-xs font-mono text-slate-400 text-right truncate pl-4">
+                    {product.id}
+                  </span>
                 </div>
               </div>
             </div>
-
             <div className="block lg:hidden space-y-4 pt-4">
               <h3 className="font-bold text-lg">Description</h3>
-              <p className="whitespace-pre-line text-slate-600 dark:text-slate-300 text-sm leading-relaxed">{product.description}</p>
+              <p className="whitespace-pre-line text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
+                {product.description}
+              </p>
             </div>
           </div>
         </div>
@@ -745,6 +1058,7 @@ export default function ProductPageWithChat(): JSX.Element {
         typingUsers={typingUsers}
         currentUserId={currentUserId}
         sending={sending}
+        attachmentUploading={attachmentUploading}
       />
     </div>
   );

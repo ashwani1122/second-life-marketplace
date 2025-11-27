@@ -16,6 +16,7 @@ import CartPage from "./pages/CartPage";
 import Dashboard from "./pages/Dashboard";
 import { ChatGlobalListener } from "./components/chatGlobalListener";
 import InboxPage from "./pages/InboxPage";
+import ProductPageWithChat from "./pages/ProductPage";
 
 const queryClient = new QueryClient();
 
@@ -33,7 +34,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/browse" element={<Browse />} />
           <Route path="/sell" element={<Sell />} />
-          <Route path="/product/:id" element={<ProductPage />} /> 
+          <Route path="/product/:id" element={<ProductPageWithChat />} /> 
           <Route path="/profile" element={<Profile />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/dashboard" element={<Dashboard />} />

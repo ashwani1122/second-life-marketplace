@@ -1,59 +1,55 @@
+// src/components/ChatGlobalListener.tsx
+
 import { useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner"; // You are already using sonner
-import { useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client"; // Adjust path to your Supabase client
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export const ChatGlobalListener = () => {
-  const location = useLocation();
+  const navigate = useNavigate();
+  // Use a ref to store the user ID without triggering re-renders
   const userIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // 1. Get current user
-    const getUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      userIdRef.current = data.user?.id || null;
+    const checkUser = async () => {
+        const { data } = await supabase.auth.getUser();
+        userIdRef.current = data.user?.id || null;
     };
-    getUser();
+    checkUser();
 
-    // 2. Set up Realtime Subscription for NEW messages
+    // 2. Listen for ANY new message insert
     const channel = supabase
-      .channel("global-messages-listener")
-      .on(
+        .channel("global-chat-listener")
+        .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-        },
+        { event: "INSERT", schema: "public", table: "messages" },
         async (payload) => {
-          const newMessage = payload.new;
+            const newMessage = payload.new;
+            const currentUserId = userIdRef.current;
 
-          // Don't notify if I sent the message
-          if (newMessage.sender_id === userIdRef.current) return;
+          // Crucial check: Don't notify the sender (me)
+            if (!currentUserId || newMessage.sender_id === currentUserId) {
+                return;
+            }
 
-          // Don't notify if I am currently on the product page for this chat
-          // (Optional: requires more logic to check strictly against current URL)
-          
-          // Fetch the Sender's Name to make the toast pretty
-          const { data: profile } = await supabase
-            .from("profiles")
+          // Fetch Sender Name for a nice toast message
+            let senderName = "Someone";
+            const { data: profile } = await supabase
+                .from("profiles")
             .select("full_name")
             .eq("id", newMessage.sender_id)
             .single();
+          
+          if (profile?.full_name) senderName = profile.full_name;
 
-          const senderName = profile?.full_name || "Someone";
-
-          // 3. Trigger Toast Notification
-          toast.message(`New message from ${senderName}`, {
-            description: newMessage.content || "Sent an attachment",
+          // Show Notification
+          toast(`New message from ${senderName}`, {
+            description: newMessage.content ? newMessage.content.substring(0, 50) + "..." : "Sent an attachment",
             action: {
-              label: "View",
-              onClick: () => {
-                // Navigate to your Inbox or the specific Product Page
-                // Assuming you have an inbox route:
-                window.location.href = `/inbox`; 
-              },
+              label: "View Inbox",
+              onClick: () => navigate("/inbox"), // Navigates to the Inbox page
             },
+            duration: 8000,
           });
         }
       )
@@ -62,7 +58,7 @@ export const ChatGlobalListener = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [navigate]);
 
-  return null; // This component renders nothing visually
+  return null;
 };
