@@ -4,14 +4,15 @@ import { ShoppingBag, Plus, Home, User, Moon, Sun, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser } from "@supabase/supabase-js";
-import { useUnreadCount } from "@/hooks/useUnreadCount"; 
+import { useUnreadCount } from "@/hooks/useUnreadCount"; // 🎯 IMPORT THE NEW HOOK 🎯
 
 export const Navbar = () => {
   const location = useLocation();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
-  const { unreadCount, isNewMessageReceived, clearNewMessageFlag } = useUnreadCount(); 
+  // 🎯 USE THE NEW HOOK TO GET UNREAD COUNT 🎯
+  const unreadCount = useUnreadCount(); 
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
@@ -32,13 +33,6 @@ export const Navbar = () => {
 
     return () => subscription.unsubscribe();
   }, []);
-  
-  useEffect(() => {
-    if (location.pathname === '/inbox') {
-        // clearNewMessageFlag();
-    }
-  }, [location.pathname, clearNewMessageFlag]);
-
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -122,6 +116,7 @@ export const Navbar = () => {
                   </Button>
                 </Link>
                 
+                {/* 🎯 INBOX LINK WITH BADGE 🎯 */}
                 <Link to="/inbox" className="relative">
                   <Button 
                     variant={isActive("/inbox") ? "default" : "outline"} 
@@ -134,7 +129,7 @@ export const Navbar = () => {
                   {unreadCount > 0 && (
                     <span 
                         // The badge: red dot, positioned absolutely, rings for visibility
-                        className={`absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 block h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-900 bg-red-500 ${isNewMessageReceived ? 'animate-pulse' : ''}`} 
+                        className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 block h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-900 bg-red-500 animate-pulse" 
                         title={`${unreadCount} unread message(s)`}
                     />
                   )}
