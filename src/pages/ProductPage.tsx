@@ -717,7 +717,6 @@ export default function ProductPageWithChat(): JSX.Element {
   }, [chatId, currentUserId]);
 
   // close chat (cleanup channels)
- // 🚀 FIXED closeChat 🚀
 const closeChat = useCallback(() => {
   // 1. Cleanup Supabase Channels FIRST
     
