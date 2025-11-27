@@ -1,16 +1,18 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, Plus, Home, User, Moon, Sun } from "lucide-react";
+import { ShoppingBag, Plus, Home, User, Moon, Sun, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+import { useUnreadCount } from "@/hooks/useUnreadCount"; 
 
 export const Navbar = () => {
   const location = useLocation();
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  
-
   const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  // 🎯 DESTRUCTURE NEW VALUES 🎯
+  const { unreadCount, isNewMessageReceived, clearNewMessageFlag } = useUnreadCount(); 
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
@@ -31,6 +33,14 @@ export const Navbar = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+  
+  // 🎯 CLEAR FLAG WHEN USER NAVIGATES TO INBOX 🎯
+  useEffect(() => {
+    if (location.pathname === '/inbox') {
+        // clearNewMessageFlag();
+    }
+  }, [location.pathname, clearNewMessageFlag]);
+
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -73,7 +83,7 @@ export const Navbar = () => {
               <ShoppingBag className="h-4 w-4" />
               Browse
             </Link>
-            
+
             <Link 
               to="/sell" 
               className={`flex items-center gap-2 transition-smooth ${
@@ -106,12 +116,34 @@ export const Navbar = () => {
               
             </Button>
             {user ? (
-              <Link to="/profile">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <User className="h-4 w-4" />
-                  Profile
-                </Button>
-              </Link>
+              <div className="flex items-center gap-2"> {/* Added flex container for spacing */}
+                <Link to="/profile">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <User className="h-4 w-4" />
+                    Profile
+                  </Button>
+                </Link>
+                
+                {/* 🎯 INBOX LINK WITH BADGE 🎯 */}
+                <Link to="/inbox" className="relative">
+                  <Button 
+                    variant={isActive("/inbox") ? "default" : "outline"} 
+                    size="sm" 
+                    className="gap-2"
+                  >
+                    <Mail className="h-4 w-4" />
+                    Inbox
+                  </Button>
+                  {unreadCount > 0 && (
+                    <span 
+                        // The badge: red dot, positioned absolutely, rings for visibility
+                        className={`absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 block h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-900 bg-red-500 ${isNewMessageReceived ? 'animate-pulse' : ''}`} // 🎯 CONDITIONAL BLINKING 🎯
+                        title={`${unreadCount} unread message(s)`}
+                    />
+                  )}
+                </Link>
+
+              </div>
             ) : (
               <Link to="/auth">
                 <Button size="sm" className="gradient-primary">
