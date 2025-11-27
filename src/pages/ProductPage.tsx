@@ -503,7 +503,6 @@ export default function ProductPageWithChat(): JSX.Element {
   }, [
     loading,
     currentUserId,
-    chatOpen,
     location.state,
     loadMessages,
     subscribeToMessages,
@@ -718,22 +717,20 @@ export default function ProductPageWithChat(): JSX.Element {
   }, [chatId, currentUserId]);
 
   // close chat (cleanup channels)
-  const closeChat = useCallback(() => {
-    setChatOpen(false);
-    setMessages([]);
-    setChatId(null);
-    typingActiveRef.current = false;
-    if (typingTimerRef.current) {
-      window.clearTimeout(typingTimerRef.current);
-      typingTimerRef.current = null;
-    }
+ // 🚀 FIXED closeChat 🚀
+const closeChat = useCallback(() => {
+  // 1. Cleanup Supabase Channels FIRST
+    
+  const cleanupChannels = () => {
     try {
       if (messagesChannelRef.current) {
+        // Unsubscribe and remove the messages channel
         messagesChannelRef.current.unsubscribe();
         supabase.removeChannel(messagesChannelRef.current);
         messagesChannelRef.current = null;
       }
       if (typingChannelRef.current) {
+        // Unsubscribe and remove the typing channel
         typingChannelRef.current.unsubscribe();
         supabase.removeChannel(typingChannelRef.current);
         typingChannelRef.current = null;
@@ -741,7 +738,23 @@ export default function ProductPageWithChat(): JSX.Element {
     } catch (e) {
       console.warn("cleanup channels error", e);
     }
-  }, []);
+  };
+
+  cleanupChannels();
+
+  // 2. Reset All State Variables AFTER Cleanup
+  setChatOpen(false); // This is the final step that closes the UI
+  setMessages([]);
+  setChatId(null);
+  setTypingUsers({}); // Make sure to clear any lingering typing users
+  
+  // 3. Clear local typing state
+  typingActiveRef.current = false;
+  if (typingTimerRef.current) {
+    window.clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = null;
+  }
+}, []);
 
   // when chat open and chatId changes, mark read and ensure typing subscription live
   useEffect(() => {
