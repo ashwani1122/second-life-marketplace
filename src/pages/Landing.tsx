@@ -27,7 +27,6 @@ import { motion } from "framer-motion";
 // --- CUSTOM HOOK FOR THEME ---
 function useTheme() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
-
   useEffect(() => {
     const stored = localStorage.getItem("theme-preference");
     if (stored === "dark" || stored === "light") {
@@ -102,18 +101,19 @@ export default function Landing() {
   const { theme, toggleTheme } = useTheme();
   const [session, setSession] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+  
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(!!session);
     });
+   
   }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 transition-colors duration-500 font-sans selection:bg-indigo-500/30">
       
       {/* --- NAVIGATION --- */}
-      <nav className="fixed top-0 w-full z-50 border-b border-slate-200/50 dark:border-slate-800/50 bg-white/80 dark:bg-[#0B0F19]/80 backdrop-blur-xl h-14">
+      {/* <nav className="fixed top-0 w-full z-50 border-b border-slate-200/50 dark:border-slate-800/50 bg-white/80 dark:bg-[#0B0F19]/80 backdrop-blur-xl h-14">
         <div className="container mx-auto px-4 lg:px-6 h-full flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
@@ -141,7 +141,7 @@ export default function Landing() {
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>{mobileMenuOpen ? <X size={20}/> : <Menu size={20}/>}</button>
           </div>
         </div>
-      </nav>
+      </nav> */}
 
       {/* --- HERO SECTION --- */}
       <section className="relative pt-28 pb-16 lg:pt-36 lg:pb-20 overflow-hidden">

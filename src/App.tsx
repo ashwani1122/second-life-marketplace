@@ -14,6 +14,8 @@ import Profile from "./pages/Profile";
 import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
 import Dashboard from "./pages/Dashboard";
+import { ChatGlobalListener } from "./components/chatGlobalListener";
+import InboxPage from "./pages/InboxPage";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +25,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ChatGlobalListener />
         <Navbar />
+
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
@@ -33,6 +37,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/inbox" element={<InboxPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

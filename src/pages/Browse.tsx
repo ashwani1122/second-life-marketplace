@@ -8,11 +8,8 @@ import {
   ShoppingBag, 
   ArrowLeft, 
   SlidersHorizontal, 
-  X, 
   Sun, 
   Moon,
-  LayoutGrid,
-  List
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -165,7 +162,7 @@ const Browse = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 transition-colors duration-500 font-sans">
       
       {/* --- HEADER --- */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#0B0F19]/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50">
+      {/* <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#0B0F19]/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Link to="/" className="text-slate-500 hover:text-indigo-600 transition-colors">
@@ -183,10 +180,9 @@ const Browse = () => {
              <button onClick={toggleTheme} className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
              </button>
-             {/* Mobile Filter Trigger could go here */}
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* --- SEARCH HERO SECTION --- */}
       <section className="relative pt-12 pb-8 px-4">

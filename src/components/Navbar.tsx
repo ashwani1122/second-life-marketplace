@@ -73,6 +73,7 @@ export const Navbar = () => {
               <ShoppingBag className="h-4 w-4" />
               Browse
             </Link>
+            
             <Link 
               to="/sell" 
               className={`flex items-center gap-2 transition-smooth ${
