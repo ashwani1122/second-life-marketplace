@@ -161,29 +161,7 @@ const Browse = () => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 transition-colors duration-500 font-sans">
       
-      {/* --- HEADER --- */}
-      {/* <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#0B0F19]/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link to="/" className="text-slate-500 hover:text-indigo-600 transition-colors">
-              <ArrowLeft size={20} />
-            </Link>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
-                <ShoppingBag size={18} strokeWidth={2.5} />
-              </div>
-              <span className="font-bold text-xl tracking-tight hidden sm:block">Browse</span>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4">
-             <button onClick={toggleTheme} className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-               {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-             </button>
-          </div>
-        </div>
-      </header> */}
-
+     
       {/* --- SEARCH HERO SECTION --- */}
       <section className="relative pt-12 pb-8 px-4">
          <div className="container mx-auto text-center space-y-6">
@@ -199,18 +177,8 @@ const Browse = () => {
                </p>
             </motion.div>
             
-            <motion.div 
-               initial={{ opacity: 0, scale: 0.95 }}
-               animate={{ opacity: 1, scale: 1 }}
-               transition={{ delay: 0.2 }}
-               className="relative z-10"
-            >
-              <MovingBorderInput 
-                 value={searchQuery} 
-                 onChange={(e: any) => setSearchQuery(e.target.value)} 
-                 placeholder="Search products, brands, or categories..." 
-              />
-            </motion.div>
+           
+            
          </div>
          
          {/* Background Glow */}
