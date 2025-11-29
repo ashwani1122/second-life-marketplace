@@ -17,8 +17,8 @@ const HeroSection = () => {
       <div className="grid md:grid-cols-2 items-center">
         
         {/* === LEFT COLUMN: TEXT CONTENT === */}
-        <div className="flex flex-col justify-center  font-sans md:text-left w-full gap-10 0">
-            <h1 className="max-w-2xl  text-5xl   font-bold  md:text-6xl xl:text-7xl">
+        <div className="flex flex-col justify-center  items-center font-sans md:text-left w-full gap-10 0">
+            <h1 className="max-w-2xl  text-5xl font-bold leading-tight tracking-tighter md:text-5xl xl:text-6xl">
             <span className='w-fit bg-gradient-to-b from-blue-400 to-blue-700 bg-clip-text pr-1.5 text-center text-transparent md:mb-4'> Great Finds. Better Value.</span>
             
                 <span className="text-white bg-clip-text text-transparent">
@@ -31,7 +31,7 @@ const HeroSection = () => {
             Nexo connects you with verified locals to buy and sell pre-loved items securely. No spam, just great deals.
           </p>
           
-          <div className="flex flex-col items-center justify-center gap-4  md:flex-row rounded-xl">
+          <div className="flex flex-col items-center justify-start gap-4  md:flex-row rounded-xl w-full h-[100px]">
             <Link to="/browse">
               <Button 
                 size="lg" 
