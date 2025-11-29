@@ -20,7 +20,6 @@ import {
   Instagram,
   Mail,
 } from "lucide-react";
-import SecurityIcon from "@mui/icons-material/Security";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";

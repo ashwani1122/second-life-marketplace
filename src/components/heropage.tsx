@@ -9,7 +9,7 @@ const HeroSection = () => {
 
   return (
     // 1. FIX: Main Background adjusted for dual-mode. Default is light (bg-white).
-    <section className="bg-white dark:bg-slate-900 transition-colors duration-500 font-sans selection:bg-indigo-500/30 py-20">
+    <section className="bg-white dark:bg-[#080D1F] text-slate-900 dark:text-slate-100 transition-colors duration-500 font-sans selection:bg-indigo-500/30 py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             
             {/* Inner layout: Two-column grid on desktop, stacking gracefully on mobile */}
