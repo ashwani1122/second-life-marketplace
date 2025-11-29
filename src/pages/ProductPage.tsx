@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams, Link, useLocation } from "react-router-dom";
+import { Phone } from 'lucide-react';
 import {
     Loader,
     ShoppingCart,
@@ -1128,6 +1129,10 @@ export default function ProductPageWithChat(): JSX.Element {
                                     <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
                                         <MapPin size={14} />
                                         {sellerProfile?.location ?? "Location not specified"}
+                                    </p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                        <Phone size={14} />
+                                        {sellerProfile?.phone ?? "phone no. not specified"}
                                     </p>
                                     <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-1">
                                         <ShieldCheck size={14} /> Verified User
