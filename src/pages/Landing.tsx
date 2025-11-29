@@ -121,9 +121,7 @@ const MovingBorder = ({ children, rx = "30px", ry = "30px" }: any) => {
 };
 
 export default function Landing() {
-  const { theme, toggleTheme } = useTheme();
   const [session, setSession] = useState<boolean>(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -132,12 +130,12 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 transition-colors duration-500 font-sans selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-white dark:bg-[#080D1F] text-slate-900 dark:text-slate-100 transition-colors duration-500 font-sans selection:bg-indigo-500/30">
       {/* --- HERO SECTION --- */}
-      <section className="relative pt-28 pb-16 lg:pt-36 lg:pb-20 overflow-hidden">
+      <section className="relative pt-28 pb-16 lg:pt-36 lg:pb-20 overflow-hidden w-full">
         <div className="container  gap-10 items-center w-full">
           {/* Left Text */}
-          <div className="text-center lg:text-left">
+          <div className="text-center lg:text-left ">
             <HeroSection />
           </div>
         </div>
@@ -147,7 +145,7 @@ export default function Landing() {
       <section className="py-20 bg-white dark:bg-[#0B0F19]">
         <div className="container mx-auto px-4 lg:px-6">
           <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold mb-3">Simple. Fast. Secure.</h2>
+            <h2 className="text-3xl font-bold mb-3  sm:text-6xl">Simple. Fast. Secure.</h2>
             <p className="mx-auto text-center text-lg font-medium tracking-tight md:text-xl">
               Buying and selling has never been this seamless.
             </p>
