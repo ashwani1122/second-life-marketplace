@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import HeroSection from "@/components/heropage";
+import { FeatureGrid } from "@/components/Featurecard";
 
 // --- CUSTOM HOOK FOR THEME ---
 function useTheme() {
@@ -288,52 +289,7 @@ export default function Landing() {
       </section>
 
       {/* --- BENTO GRID FEATURES --- */}
-      <section className="py-20 bg-slate-50 dark:bg-slate-900/50">
-        <div className="container mx-auto px-4 lg:px-6">
-          <div className="grid md:grid-cols-3 grid-rows-2 gap-4 h-auto md:h-[500px]">
-            {/* Large Box */}
-
-            {/* Wide Box Top Right */}
-            <div
-              className=" rounded-xl  bg-gradient-to-r from-violet-600
-              h-[100px]
-              to-indigo-600 text-white shadow-lg flex items-center justify-between"
-            >
-              <div className=" flex items-center justify-between w-full">
-                <div className=" flex flex-col  justify-between p-4">
-                  <h3 className="text-lg font-bold mb-1">Instant Chat</h3>
-                  <p className="text-indigo-100 text-sm">
-                    Negotiate in real-time.
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <MessageSquare size={22} />
-                </div>
-              </div>
-            </div>
-
-            {/* Small Box 1 */}
-            <div
-              className="rounded-xl  bg-white 
-              h-[100px] p-2 
-              dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm flex  justify-between items-center text-center hover:border-emerald-500/30 transition-colors "
-            >
-              <SecurityIcon className="text-emerald-500" />
-              <h3 className="font-bold text-lg">Buyer Protection</h3>
-            </div>
-
-            {/* Small Box 2 */}
-            <div
-              className="rounded-xl p-6 bg-white
-              h-[100px]
-              dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm flex  justify-between items-center text-center hover:border-amber-500/30 transition-colors"
-            >
-              <Search size={22} className="text-amber-500 mb-3" />
-              <h3 className="font-bold text-sm">Smart Search</h3>
-            </div>
-          </div>
-        </div>
-      </section>
+      <FeatureGrid/>
       <section className="py-16 md:py-24 bg-background dark:bg-gray-900">
   {/* Container for content centralization and max-width */}
   <div className="container mx-auto px-4 max-w-7xl">
