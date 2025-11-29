@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button"; 
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import HeroSection from "@/components/heropage";
 
 // --- CUSTOM HOOK FOR THEME ---
 function useTheme() {
@@ -111,97 +112,28 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 transition-colors duration-500 font-sans selection:bg-indigo-500/30">
-      
-      {/* --- NAVIGATION --- */}
-      {/* <nav className="fixed top-0 w-full z-50 border-b border-slate-200/50 dark:border-slate-800/50 bg-white/80 dark:bg-[#0B0F19]/80 backdrop-blur-xl h-14">
-        <div className="container mx-auto px-4 lg:px-6 h-full flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
-              <ShoppingBag size={16} strokeWidth={2.5} />
-            </div>
-            <span className="font-bold text-lg tracking-tight">Nexo</span>
-          </Link>
-
-          <div className="hidden md:flex items-center gap-6">
-            <Link to="/browse" className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-indigo-600 transition-colors">Browse</Link>
-            <Link to="/sell" className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-indigo-600 transition-colors">Sell</Link>
-            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
-            <button onClick={toggleTheme} className="text-slate-500 hover:text-indigo-500">
-              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-            <Link to={session ? "/dashboard" : "/auth"}>
-              <Button size="sm" className="rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium text-xs px-5 h-8">
-                {session ? "Dashboard" : "Get Started"}
-              </Button>
-            </Link>
-          </div>
-          
-          <div className="md:hidden flex items-center gap-4">
-            <button onClick={toggleTheme}>{theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}</button>
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>{mobileMenuOpen ? <X size={20}/> : <Menu size={20}/>}</button>
-          </div>
-        </div>
-      </nav> */}
-
       {/* --- HERO SECTION --- */}
       <section className="relative pt-28 pb-16 lg:pt-36 lg:pb-20 overflow-hidden">
-        <div className="container mx-auto px-4 lg:px-6 grid lg:grid-cols-2 gap-10 items-center">
+        <div className="container  gap-10 items-center w-full">
           
           {/* Left Text */}
-          <div className="max-w-xl mx-auto lg:mx-0 text-center lg:text-left z-10">
-            <motion.div 
-               initial={{ opacity: 0, y: 10 }}
-               animate={{ opacity: 1, y: 0 }}
-               className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 text-xs font-semibold mb-6 border border-indigo-100 dark:border-indigo-800"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-              </span>
-              Now live in your city
-            </motion.div>
+          <div className="text-center lg:text-left">
             
-            <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-4 text-slate-900 dark:text-white">
-              Buy smarter. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 animate-gradient-x">
-                Sell instantly.
-              </span>
-            </h1>
+            <HeroSection />
             
-            <p className="text-base lg:text-lg text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
-              Nexo connects you with verified locals to buy and sell pre-loved items securely. No spam, just great deals.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start">
-              <Link to="/browse" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto h-11 px-8 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25">
-                  Start Exploring
-                </Button>
-              </Link>
-              <Link to="/sell" className="w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto h-11 px-8 rounded-full border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
-                  List Item
-                </Button>
-              </Link>
             </div>
-            
-            <div className="mt-8 flex items-center justify-center lg:justify-start gap-6 text-xs font-medium text-slate-500 dark:text-slate-400">
-               <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-500"/> Verified Profiles</span>
-               <span className="flex items-center gap-1.5"><Shield className="w-4 h-4 text-indigo-500"/> Escrow Safety</span>
-            </div>
-          </div>
 
           {/* RIGHT: DYNAMIC CARD VISUAL */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
+          {/* <motion.div  */}
+            {/* initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="relative hidden lg:block h-[450px]"
-          >
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80">
+            className="relative hidden lg:block h-[450px]" */}
+          {/* > */}
+            {/* <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80">
               <MovingBorder>
-                <div className="bg-white dark:bg-slate-800 p-4">
-                  <div className="w-full h-48 bg-slate-100 dark:bg-slate-700 rounded-2xl mb-4 relative overflow-hidden group">
+                {/* <div className="bg-white dark:bg-slate-800 p-4">
+                  <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-xl relative overflow-hidden group">
                     <img src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=600&q=80" alt="Product" className="object-cover w-full h-full transform group-hover:scale-110 transition-transform duration-500" />
                     <div className="absolute bottom-3 left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                        <Zap size={12} className="text-amber-500 fill-amber-500" /> Hot Item
@@ -218,26 +150,26 @@ export default function Landing() {
                       <Button className="flex-1 h-9 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs">Buy Now</Button>
                       <Button variant="outline" className="h-9 w-9 p-0"><MessageSquare size={14}/></Button>
                   </div>
-                </div>
-              </MovingBorder>
-            </div>
+                </div> */}
+              {/* </MovingBorder> */}
+            {/* </div> */} 
 
             {/* Floating Review Bubble */}
-            <motion.div 
+            {/* <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
               className="absolute -bottom-4 left-10 bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 flex items-center gap-3 z-20 max-w-[200px]"
-            >
-               <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-xs">SJ</div>
-               <div>
+            > */}
+               {/* <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-xs">SJ</div> */}
+               {/* <div>
                   <div className="flex text-amber-400 text-[10px] space-x-0.5">
                      {[1,2,3,4,5].map(i => <span key={i}>★</span>)}
                   </div>
                   <p className="text-[10px] font-medium leading-tight">"Sold in 2 hours!"</p>
-               </div>
-            </motion.div>
-          </motion.div>
+               </div> */}
+            {/* </motion.div>
+          </motion.div> */}
         </div>
       </section>
 

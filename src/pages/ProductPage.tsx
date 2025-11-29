@@ -825,9 +825,10 @@ const closeChat = useCallback(() => {
 
               {images.length > 1 && (
                 <>
+              
                   <button
                     onClick={prev}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-800/90 p-2.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 active:scale-95 text-slate-900 dark:text-white"
+                    className="absolute left-1 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-800/90 p-2.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 active:scale-95 text-slate-900 dark:text-white"
                   >
                     <ChevronLeft size={20} />
                   </button>

@@ -1,24 +1,66 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; // Added for redirection
+import { supabase } from "@/integrations/supabase/client"; // Added to check session
 import { readCart, updateCartItemQuantity, removeFromCart } from "@/utils/cart";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast"; // Added for notifications
+import { Loader2 } from "lucide-react"; // Added for loading state
 
 export default function CartPage() {
-  const [items, setItems] = useState(() => readCart());
+  const [items, setItems] = useState<any[]>(() => readCart());
+  const [isAuthChecked, setIsAuthChecked] = useState(false); // Tracks if authentication check is complete
+  
+  const navigate = useNavigate(); 
+  const { toast } = useToast(); 
 
+  // --- Authentication Check ---
   useEffect(() => {
-    setItems(readCart());
-  }, []);
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // User is not logged in: show toast and redirect
+        toast({
+          title: "Login Required",
+          description: "You must be logged in to view your cart.",
+          variant: "destructive",
+        });
+        navigate("/auth");
+      } else {
+        // User is authenticated: load cart data
+        setItems(readCart()); 
+      }
+      // Mark check as complete whether logged in or not (for rendering logic)
+      setIsAuthChecked(true);
+    };
+
+    checkAuth();
+  }, [navigate, toast]); 
 
   const setQty = (id: string, qty: number) => {
     updateCartItemQuantity(id, qty);
     setItems(readCart());
   };
+  
   const remove = (id: string) => {
     removeFromCart(id);
     setItems(readCart());
   };
 
   const total = items.reduce((s, it) => s + it.price * it.quantity, 0);
+
+  // Show a loading indicator until the authentication check is complete
+  if (!isAuthChecked) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg text-muted-foreground">Checking authentication...</span>
+      </div>
+    );
+  }
+
+  // If auth check failed, navigation handled the redirect, so this component will not fully render.
+  // If we reach here, the user is authenticated (or we are in a testing scenario).
 
   return (
     <div className="max-w-4xl mx-auto p-6">

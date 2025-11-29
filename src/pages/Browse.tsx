@@ -251,7 +251,7 @@ const Browse = () => {
 
       {/* --- MAIN CONTENT --- */}
       <div className="container mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-8">
+        {/* <div className="flex items-center justify-between mb-8">
            <h2 className="font-bold text-xl flex items-center gap-2">
              Results <span className="text-slate-400 text-sm font-normal">({products.length} items)</span>
            </h2>
@@ -260,7 +260,7 @@ const Browse = () => {
                  <SlidersHorizontal size={14} /> Filters
               </Button>
            </div>
-        </div>
+        </div> */}
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
