@@ -1,4 +1,3 @@
-// src/components/ChatGlobalListener.tsx
 
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client"; // Adjust path to your Supabase client

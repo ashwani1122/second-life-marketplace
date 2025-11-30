@@ -2,17 +2,10 @@ import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { Loader, MessageSquare, Clock, User, Box } from "lucide-react";
+import { ChatListItem } from "@/types/chatList";
 
 // Simplified type for the list item
-interface ChatListItem {
-    id: string;
-    product_id: string;
-    product_title: string;
-    partner_name: string;
-    last_message_content?: string;
-    last_message_time: string;
-    is_unread: boolean;
-}
+
 
 // Helper function for time formatting
 const formatTime = (isoString: string) => {
@@ -103,11 +96,6 @@ export default function InboxPage(): JSX.Element {
 
     useEffect(() => {
         fetchChats();
-        
-        // This subscription would be more complex (listening to messages table, filtered by recipient_id), 
-        // but since we are relying on a separate custom hook (useUnreadCount) for the dot,
-        // we'll keep the inbox view fetching data periodically or rely on navigation/component mount to refresh.
-        // For simplicity and to avoid duplicated logic, we rely on the mount/unmount pattern here.
     }, [fetchChats]);
 
     if (!currentUserId) {
