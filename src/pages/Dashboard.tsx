@@ -1,5 +1,5 @@
-// Dashboard.tsx
-import React, { useEffect, useMemo, useState, useRef } from "react";
+// src/pages/Dashboard.tsx
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -20,7 +20,7 @@ import {
   Plus,
   Sun,
   Moon,
-  Loader
+  Loader,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,7 +53,19 @@ function useTheme() {
   return { theme, toggleTheme };
 }
 
-/* Component */
+/**
+ * Dashboard
+ *
+ * - Live-syncs products for current seller
+ * - Subscribes to messages and notifications (to show toasts + desktop notification + sound)
+ * - Subscribes to bookings (so seller sees new booking counts live)
+ *
+ * Requirements:
+ * - "notifications" table exists and inserts (trigger or Edge Function) write notifications with { user_id, type, payload, read, created_at }
+ * - "bookings" table exists and is inserted by buyers
+ * - Place a small notification sound at /public/sounds/notify.mp3 if you want sound
+ */
+
 export default function Dashboard() {
   const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -69,42 +81,64 @@ export default function Dashboard() {
   const [soldCount, setSoldCount] = useState<number>(0);
   const [revenue, setRevenue] = useState<number>(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
+  const [pendingBookingsCount, setPendingBookingsCount] = useState<number>(0);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(0);
 
-  // channels refs for cleanup
+  // Realtime channel refs
   const productsChannelRef = useRef<RealtimeChannel | null>(null);
   const messagesChannelRef = useRef<RealtimeChannel | null>(null);
+  const notificationsChannelRef = useRef<RealtimeChannel | null>(null);
+  const bookingsChannelRef = useRef<RealtimeChannel | null>(null);
 
+  // --- helper: request desktop notification permission once ---
+  const requestDesktopPermission = async () => {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "default") {
+      try {
+        await Notification.requestPermission();
+      } catch {}
+    }
+  };
+
+  // --- load auth user ---
   useEffect(() => {
-    // get current user
     let mounted = true;
-    supabase.auth.getUser().then(({ data: { user: u } }) => {
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      const u = data?.user ?? null;
       if (!mounted) return;
-      if (u) {
-        setUser(u);
-        setCurrentUserId(u.id);
-      } else {
-        setUser(null);
-        setCurrentUserId(null);
-        // optional: redirect if not authed
-        // navigate("/auth");
-      }
+      setUser(u);
+      setCurrentUserId(u?.id ?? null);
+    })();
+
+    // also subscribe to auth changes to update user live
+    const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      setCurrentUserId(u?.id ?? null);
     });
 
     return () => {
       mounted = false;
+      try {
+        authSub?.subscription?.unsubscribe?.();
+      } catch {}
     };
   }, [navigate]);
 
-  // Fetch dashboard data when we have a current user
+  // --- fetch dashboard data when seller id is available ---
   useEffect(() => {
     if (!currentUserId) {
-      // reset UI when not logged in
       setListings([]);
       setRecentListings([]);
       setActiveCount(0);
       setSoldCount(0);
       setRevenue(0);
       setUnreadMessagesCount(0);
+      setPendingBookingsCount(0);
+      setNotifications([]);
+      setUnreadNotificationsCount(0);
       setLoading(false);
       return;
     }
@@ -114,7 +148,7 @@ export default function Dashboard() {
 
     const fetchAll = async () => {
       try {
-        // 1) Fetch all listings for this seller
+        // 1) listings for seller
         const { data: listingsData, error: listingsErr } = await supabase
           .from("products")
           .select("id,title,price,status,created_at,image_url")
@@ -123,8 +157,8 @@ export default function Dashboard() {
         if (listingsErr) throw listingsErr;
         if (!mounted) return;
         setListings(listingsData ?? []);
+        setRecentListings((listingsData ?? []).slice(0, 6));
 
-        // 2) derive counts & revenue
         const active = (listingsData || []).filter((l: any) => l.status === "active").length;
         const sold = (listingsData || []).filter((l: any) => l.status === "sold").length;
         const rev = (listingsData || []).filter((l: any) => l.status === "sold").reduce((acc: number, cur: any) => acc + (Number(cur.price) || 0), 0);
@@ -132,24 +166,22 @@ export default function Dashboard() {
         setSoldCount(sold);
         setRevenue(rev);
 
-        // 3) recent listings (top 6)
-        setRecentListings((listingsData ?? []).slice(0, 6));
-
-        // 4) unread messages count:
-        //    Find chats where seller is currentUserId, then count messages in those chats that are unread and not sent by currentUserId.
+        // 2) unread messages: find chats where seller is current user OR buyer is current user
         const { data: sellerChats } = await supabase.from("chats").select("id").or(`seller_id.eq.${currentUserId},buyer_id.eq.${currentUserId}`);
         const chatIds = (sellerChats || []).map((c: any) => c.id);
         if (chatIds.length > 0) {
-          const { data: unreadRows } = await supabase
-            .from("messages")
-            .select("id")
-            .in("chat_id", chatIds)
-            .eq("read", false)
-            .neq("sender_id", currentUserId);
+          const { data: unreadRows } = await supabase.from("messages").select("id").in("chat_id", chatIds).eq("read", false).neq("sender_id", currentUserId);
           setUnreadMessagesCount((unreadRows || []).length);
-        } else {
-          setUnreadMessagesCount(0);
-        }
+        } else setUnreadMessagesCount(0);
+
+        // 3) pending bookings where seller_id = currentUserId and status = 'pending'
+        const { data: pendingBookings } = await supabase.from("bookings").select("id").eq("seller_id", currentUserId).eq("status", "pending");
+        setPendingBookingsCount((pendingBookings || []).length);
+
+        // 4) recent notifications for user
+        const { data: notes } = await supabase.from("notifications").select("*").eq("user_id", currentUserId).order("created_at", { ascending: false }).limit(25);
+        setNotifications(notes ?? []);
+        setUnreadNotificationsCount((notes || []).filter((n: any) => !n.read).length);
       } catch (err: any) {
         console.error("Dashboard fetch error:", err);
         toast.error("Failed to load dashboard data");
@@ -165,9 +197,9 @@ export default function Dashboard() {
     };
   }, [currentUserId]);
 
-  // Realtime subscriptions: products (seller's listings) and messages (incoming to seller)
+  // --- realtime subscriptions ---
   useEffect(() => {
-    // cleanup any previous
+    // cleanup function
     const cleanup = async () => {
       try {
         if (productsChannelRef.current) {
@@ -180,83 +212,90 @@ export default function Dashboard() {
           supabase.removeChannel(messagesChannelRef.current);
           messagesChannelRef.current = null;
         }
+        if (notificationsChannelRef.current) {
+          notificationsChannelRef.current.unsubscribe();
+          supabase.removeChannel(notificationsChannelRef.current);
+          notificationsChannelRef.current = null;
+        }
+        if (bookingsChannelRef.current) {
+          bookingsChannelRef.current.unsubscribe();
+          supabase.removeChannel(bookingsChannelRef.current);
+          bookingsChannelRef.current = null;
+        }
       } catch (e) {
         console.warn("cleanup channels error", e);
       }
     };
 
-    // if no current user, nothing to subscribe
+    // if no user, cleanup and exit
     if (!currentUserId) {
       cleanup();
-      return;
+      return () => {};
     }
 
-    // 1) Subscribe to products changes for this seller (INSERT/UPDATE/DELETE)
+    // subscribe to product changes for this seller (INSERT/UPDATE/DELETE)
     try {
       const productsChannel = supabase
         .channel(`prod-seller-${currentUserId}`)
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "products", filter: `seller_id=eq.${currentUserId}` },
-          (payload: any) => {
-            // payload.eventType: INSERT / UPDATE / DELETE
-            // To keep it simple: re-fetch listings & aggregate values (cheap for most sellers)
-            (async () => {
-              try {
-                const { data: listingsData } = await supabase
-                  .from("products")
-                  .select("id,title,price,status,created_at,image_url")
-                  .eq("seller_id", currentUserId)
-                  .order("created_at", { ascending: false });
-                setListings(listingsData ?? []);
-                setRecentListings((listingsData ?? []).slice(0, 6));
-                setActiveCount((listingsData || []).filter((l: any) => l.status === "active").length);
-                setSoldCount((listingsData || []).filter((l: any) => l.status === "sold").length);
-                setRevenue((listingsData || []).filter((l: any) => l.status === "sold").reduce((acc: number, cur: any) => acc + (Number(cur.price) || 0), 0));
-              } catch (err) {
-                console.error("re-fetch listings after product change failed", err);
-              }
-            })();
+          async () => {
+            // simple: refetch listings & aggregates
+            try {
+              const { data: listingsData } = await supabase.from("products").select("id,title,price,status,created_at,image_url").eq("seller_id", currentUserId).order("created_at", { ascending: false });
+              setListings(listingsData ?? []);
+              setRecentListings((listingsData ?? []).slice(0, 6));
+              setActiveCount((listingsData || []).filter((l: any) => l.status === "active").length);
+              setSoldCount((listingsData || []).filter((l: any) => l.status === "sold").length);
+              setRevenue((listingsData || []).filter((l: any) => l.status === "sold").reduce((acc: number, cur: any) => acc + (Number(cur.price) || 0), 0));
+            } catch (err) {
+              console.error("re-fetch listings after product change failed", err);
+            }
           }
         )
         .subscribe();
+
       productsChannelRef.current = productsChannel;
     } catch (e) {
       console.warn("subscribe products failed", e);
     }
 
-    // 2) Subscribe to messages table globally, but only react when the new message belongs to a chat whose seller is currentUserId.
-    //    This keeps us notified instantly when someone messages the owner.
+    // subscribe to messages INSERT to notify seller instantly
     try {
       const messagesChannel = supabase
         .channel(`messages-global-${currentUserId}`)
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "messages" },
-          async (payload: any) => {
-            try {
-              const msg = payload.new;
-              if (!msg) return;
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (payload: any) => {
+          try {
+            const msg = payload?.new;
+            if (!msg) return;
+            if (msg.sender_id === currentUserId) return; // ignore self-sent
 
-              // quick guard — ignore if sender is current user
-              if (msg.sender_id === currentUserId) return;
+            // fetch chat row to determine seller
+            const { data: chatRow, error: chatErr } = await supabase.from("chats").select("id,seller_id,product_id").eq("id", msg.chat_id).single();
+            if (chatErr || !chatRow) return;
 
-              // fetch chat to see seller_id
-              const { data: chatRow, error: chatErr } = await supabase.from("chats").select("id,seller_id,product_id").eq("id", msg.chat_id).single();
-              if (chatErr || !chatRow) return;
+            // if current user is seller for this chat, notify
+            if (chatRow.seller_id === currentUserId) {
+              setUnreadMessagesCount((c) => c + 1);
 
-              if (chatRow.seller_id === currentUserId) {
-                // increment unread badge
-                setUnreadMessagesCount((c) => c + 1);
-
-                // Optionally pull latest chats/messages for UI updates — here we only notify
-                toast.success("New message from a buyer", { description: `Product ID ${chatRow.product_id || ""}` });
+              // in-app toast + desktop notification + sound
+              toast.success("New message", { description: `For product ${chatRow.product_id ?? ""}` });
+              if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                try {
+                  new Notification("New message", { body: "A buyer messaged you — open dashboard to reply." });
+                } catch {}
               }
-            } catch (err) {
-              console.error("messages subscription handler error", err);
+              try {
+                const audio = new Audio("/sounds/notify.mp3");
+                audio.volume = 0.35;
+                audio.play().catch(() => {});
+              } catch {}
             }
+          } catch (err) {
+            console.error("messages subscription handler error", err);
           }
-        )
+        })
         .subscribe();
 
       messagesChannelRef.current = messagesChannel;
@@ -264,16 +303,124 @@ export default function Dashboard() {
       console.warn("subscribe messages failed", e);
     }
 
+    // subscribe to bookings for this seller: update pendingBookingsCount and toast
+    try {
+      const bookingsChannel = supabase
+        .channel(`bookings-seller-${currentUserId}`)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "bookings", filter: `seller_id=eq.${currentUserId}` }, (payload: any) => {
+          const b = payload?.new;
+          if (!b) return;
+          if (b.status === "pending") setPendingBookingsCount((c) => c + 1);
+          toast.success("New booking request", { description: `Product ID ${b.product_id ?? ""}` });
+          if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+            try {
+              new Notification("New booking request", { body: `Product ${b.product_id ?? ""}` });
+            } catch {}
+          }
+        })
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "bookings", filter: `seller_id=eq.${currentUserId}` }, (payload: any) => {
+          const bNew = payload?.new;
+          const bOld = payload?.old;
+          // adjust pending count if status changed from pending -> accepted/rejected/cancelled
+          if (bOld?.status === "pending" && bNew?.status !== "pending") {
+            setPendingBookingsCount((c) => Math.max(0, c - 1));
+          }
+        })
+        .subscribe();
+
+      bookingsChannelRef.current = bookingsChannel;
+    } catch (e) {
+      console.warn("subscribe bookings failed", e);
+    }
+
+    // subscribe to notifications for current user
+    try {
+      const notificationsChannel = supabase
+        .channel(`notifications-user-${currentUserId}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${currentUserId}` },
+          (payload: any) => {
+            const n = payload?.new;
+            if (!n) return;
+            setNotifications((prev) => [n, ...prev].slice(0, 50));
+            setUnreadNotificationsCount((c) => c + 1);
+            toast(`${n.type}`, { description: n.payload?.message ?? undefined });
+            if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+              try {
+                new Notification(n.type ?? "Notification", { body: n.payload?.message ?? "" });
+              } catch {}
+            }
+            try {
+              const audio = new Audio("/sounds/notify.mp3");
+              audio.volume = 0.35;
+              audio.play().catch(() => {});
+            } catch {}
+          }
+        )
+        .subscribe();
+
+      notificationsChannelRef.current = notificationsChannel;
+    } catch (e) {
+      console.warn("subscribe notifications failed", e);
+    }
+
+    // request browser notifications permission (only if not already granted/denied)
+    requestDesktopPermission();
+
     // cleanup on unmount or user change
     return () => {
-      cleanup();
+      (async () => {
+        try {
+          if (productsChannelRef.current) {
+            productsChannelRef.current.unsubscribe();
+            supabase.removeChannel(productsChannelRef.current);
+            productsChannelRef.current = null;
+          }
+          if (messagesChannelRef.current) {
+            messagesChannelRef.current.unsubscribe();
+            supabase.removeChannel(messagesChannelRef.current);
+            messagesChannelRef.current = null;
+          }
+          if (notificationsChannelRef.current) {
+            notificationsChannelRef.current.unsubscribe();
+            supabase.removeChannel(notificationsChannelRef.current);
+            notificationsChannelRef.current = null;
+          }
+          if (bookingsChannelRef.current) {
+            bookingsChannelRef.current.unsubscribe();
+            supabase.removeChannel(bookingsChannelRef.current);
+            bookingsChannelRef.current = null;
+          }
+        } catch (e) {
+          console.warn("cleanup channels error", e);
+        }
+      })();
     };
   }, [currentUserId]);
 
+  // sign out
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/");
   };
+
+  // mark notifications read (simple bulk update)
+  const markAllNotificationsRead = async () => {
+    if (!currentUserId) return;
+    try {
+      await supabase.from("notifications").update({ read: true }).eq("user_id", currentUserId).is("read", false);
+      setNotifications((s) => s.map((n) => ({ ...n, read: true })));
+      setUnreadNotificationsCount(0);
+      toast.success("Notifications marked read");
+    } catch (err) {
+      console.error("markAllNotificationsRead", err);
+      toast.error("Failed to mark read");
+    }
+  };
+
+  // helper formatted revenue
+  const revenueStr = useMemo(() => revenue.toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }), [revenue]);
 
   const navItems = [
     { name: "Overview", icon: LayoutDashboard, active: true },
@@ -283,20 +430,6 @@ export default function Dashboard() {
     { name: "Settings", icon: Settings, active: false },
   ];
 
-  // format revenue for display
-  const revenueStr = useMemo(() => {
-    return revenue.toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
-  }, [revenue]);
-
-  // Stats array built from live values
-  const stats = [
-    { label: "Total Revenue", value: revenueStr, change: "+20.1%", trend: "up", icon: Wallet },
-    { label: "Active Listings", value: String(activeCount), change: `${activeCount >= 0 ? "+" : ""}${activeCount}`, trend: "up", icon: Package },
-    { label: "Items Sold", value: String(soldCount), change: `${soldCount >= 0 ? "+" : ""}${soldCount}`, trend: "up", icon: ShoppingBag },
-    { label: "Messages", value: String(unreadMessagesCount), change: "-2", trend: "down", icon: MessageSquare },
-  ];
-
-  // loading fallbacks
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-[#0B0F19]">
@@ -310,24 +443,13 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 font-sans flex transition-colors duration-500">
-      {/* mobile overlay */}
       <AnimatePresence>
         {sidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
-          />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm" />
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
-      <motion.aside
-        className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-white dark:bg-[#0B0F19] border-r border-slate-200 dark:border-slate-800 flex flex-col transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-          }`}
-      >
+      <motion.aside className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-white dark:bg-[#0B0F19] border-r border-slate-200 dark:border-slate-800 flex flex-col transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <div className="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-800/50">
           <Link to="/" className="flex items-center gap-2 group">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
@@ -342,18 +464,10 @@ export default function Dashboard() {
 
         <div className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
-            <button
-              key={item.name}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative ${item.active ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                }`}
-            >
+            <button key={item.name} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative ${item.active ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"}`}>
               <item.icon size={18} className={item.active ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300"} />
               {item.name}
-              {item.badge && (
-                <span className="ml-auto bg-indigo-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  {item.badge}
-                </span>
-              )}
+              {item.badge && <span className="ml-auto bg-indigo-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{item.badge}</span>}
               {item.active && <motion.div layoutId="activeNav" className="absolute left-0 w-1 h-6 bg-indigo-600 rounded-r-full" />}
             </button>
           ))}
@@ -375,7 +489,6 @@ export default function Dashboard() {
         </div>
       </motion.aside>
 
-      {/* Main */}
       <main className="flex-1 min-w-0 overflow-y-auto h-screen">
         <header className="sticky top-0 z-30 bg-white/80 dark:bg-[#0B0F19]/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 h-16 px-4 lg:px-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -399,9 +512,9 @@ export default function Dashboard() {
               {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
-            <button className="relative w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Notifications">
+            <button title="Notifications" className="relative w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => { markAllNotificationsRead(); }}>
               <Bell size={18} />
-              {unreadMessagesCount > 0 && <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>}
+              {(unreadNotificationsCount + unreadMessagesCount + pendingBookingsCount) > 0 && <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>}
             </button>
 
             <Button className="hidden sm:flex bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-4 h-9 gap-2 text-xs font-semibold shadow-lg shadow-indigo-500/20">
@@ -422,14 +535,19 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {stats.map((stat, idx) => (
+            {[
+              { label: "Total Revenue", value: revenueStr, change: "+20.1%", trend: "up", icon: Wallet },
+              { label: "Active Listings", value: String(activeCount), change: `${activeCount >= 0 ? "+" : ""}${activeCount}`, trend: "up", icon: Package },
+              { label: "Items Sold", value: String(soldCount), change: `${soldCount >= 0 ? "+" : ""}${soldCount}`, trend: "up", icon: ShoppingBag },
+              { label: "Messages", value: String(unreadMessagesCount), change: "-2", trend: "down", icon: MessageSquare },
+            ].map((stat, idx) => (
               <motion.div key={idx} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="p-5 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all group">
                 <div className="flex justify-between items-start mb-4">
                   <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30 group-hover:text-indigo-600 transition-colors">
                     <stat.icon size={20} />
                   </div>
-                  <span className={`flex items-center text-xs font-bold px-2 py-1 rounded-full ${stat.trend === 'up' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-rose-600 bg-rose-50 dark:bg-rose-900/20'}`}>
-                    {stat.trend === 'up' ? <ArrowUpRight size={12} className="mr-1" /> : <ArrowDownRight size={12} className="mr-1" />}
+                  <span className={`flex items-center text-xs font-bold px-2 py-1 rounded-full ${stat.trend === "up" ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20" : "text-rose-600 bg-rose-50 dark:bg-rose-900/20"}`}>
+                    {stat.trend === "up" ? <ArrowUpRight size={12} className="mr-1" /> : <ArrowDownRight size={12} className="mr-1" />}
                     {stat.change}
                   </span>
                 </div>
@@ -455,7 +573,7 @@ export default function Dashboard() {
                     <div className="relative w-full rounded-t-lg bg-indigo-50 dark:bg-indigo-900/20 h-full overflow-hidden flex items-end group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 transition-colors">
                       <motion.div initial={{ height: 0 }} animate={{ height: `${h}%` }} transition={{ duration: 1, ease: "circOut", delay: i * 0.05 }} className="w-full bg-indigo-600 dark:bg-indigo-500 rounded-t-md opacity-80 group-hover:opacity-100 transition-opacity" />
                     </div>
-                    <span className="text-[10px] font-medium text-slate-400 hidden sm:block">{['J','F','M','A','M','J','J','A','S','O','N','D'][i]}</span>
+                    <span className="text-[10px] font-medium text-slate-400 hidden sm:block">{["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"][i]}</span>
                   </div>
                 ))}
               </div>
@@ -480,7 +598,7 @@ export default function Dashboard() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-bold text-indigo-600">₹{Number(item.price || 0).toLocaleString()}</p>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-1 ${item.status === 'sold' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30' : item.status === 'active' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-1 ${item.status === "sold" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30" : item.status === "active" ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"}`}>
                           {item.status ?? "—"}
                         </span>
                       </div>

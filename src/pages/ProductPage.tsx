@@ -31,6 +31,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { Profile } from "@/types/Profiletypes";
 import { ChatDrawer } from "@/components/ChatDrawerInner";
 import { Product } from "@/types/Product";
+import { BookingButton } from "@/components/BookingButton";
 
 // --- Type Definitions (No change needed) ---
 
@@ -337,6 +338,7 @@ export default function ProductPageWithChat(): JSX.Element {
         subscribeToMessages,
         subscribeToTyping,
         markMessagesAsRead,
+        chatOpen,
     ]);
 
     // openChat implementation (remains the same)
@@ -849,7 +851,7 @@ export default function ProductPageWithChat(): JSX.Element {
                                     : "Chat with Seller"}
                             </motion.button>
                         </div>
-
+                        <BookingButton productId={product.id!} sellerId={product.seller_id}  />
                         {/* Seller Profile Card */}
                         <div className="rounded-2xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
                             <h3 className="text-xl font-bold mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
