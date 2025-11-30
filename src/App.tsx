@@ -17,6 +17,7 @@ import Dashboard from "./pages/Dashboard";
 import { ChatGlobalListener } from "./components/chatGlobalListener";
 import InboxPage from "./pages/InboxPage";
 import ProductPageWithChat from "./pages/ProductPage";
+import ProductBookings from "./pages/ProductBooking";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/cart" element={<CartPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/inbox" element={<InboxPage />} />
+          <Route path="/product/:id/bookings" element={<ProductBookings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
