@@ -208,51 +208,6 @@ export const Navbar = () => {
     navigate("/sell");
   }, [ensureProfileComplete, navigate]);
 
-  // Conditional Cart link (unchanged behavior, opens modal if profile incomplete)
-//   const CartLink = ({ onClick }: { onClick?: () => void }) => {
-//     if (!user) {
-//       return (
-//         <Link to="/auth" onClick={onClick}>
-//           <Button variant="ghost" size="sm" className="gap-2 w-full justify-start p-0 h-auto">
-//             <ShoppingBag className="h-4 w-4" />
-//             Cart (Sign In)
-//           </Button>
-//         </Link>
-//       );
-//     }
-
-//     if (!phone || !address) {
-//       return (
-//         <Button
-//           variant="ghost"
-//           size="sm"
-//           className="gap-2 text-foreground hover:text-primary w-full justify-start p-0 h-auto"
-//           onClick={() => {
-//             setIsModalOpen(true);
-//             if (onClick) onClick();
-//           }}
-//         >
-//           <ShoppingBag className="h-4 w-4" />
-//           Cart (Add Details)
-//         </Button>
-//       );
-//     }
-
-//     return (
-//       <Link
-//         to="/cart"
-//         onClick={onClick}
-//         className={`flex items-center gap-2 transition-smooth w-full justify-start ${
-//           isActive("/cart") ? "text-primary font-medium" : "text-foreground hover:text-primary"
-//         }`}
-//       >
-//         <ShoppingBag className="h-4 w-4" />
-//         Cart
-//       </Link>
-//     );
-//   };
-
-  // Basic render
   return (
     <>
       <div className="h-16">
@@ -273,9 +228,11 @@ export const Navbar = () => {
                 </Link>
 
                 <Link to="/browse" className={`flex items-center gap-2 transition-smooth ${isActive("/browse") ? "text-primary" : "text-foreground hover:text-primary"}`}>
-                  <ShoppingBag className="h-4 w-4" /> Browse
+                   Browse
                 </Link>
-
+                     <Link to="/dashboard" className={`flex items-center gap-2 transition-smooth ${isActive("/dashboard") ? "text-primary" : "text-foreground hover:text-primary"}`}>
+                  <ShoppingBag className="h-4 w-4" /> Dashboard
+                </Link>
                 {/* SELL: replaced Link with handler button */}
                 <button
                   onClick={() => handleSellClick({ fromMobile: false })}
