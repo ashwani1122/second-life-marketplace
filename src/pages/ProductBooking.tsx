@@ -21,12 +21,17 @@ export default function ProductBookings(): JSX.Element {
   const [bookings, setBookings] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null); // booking being processed
-  const bookingsChanRef = useRef<any>(null);
+  const bookingsChanRef = useRef<any | null>(null);
 
+  // get current user id
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      setCurrentUserId(data?.user?.id ?? null);
+      try {
+        const res = await supabase.auth.getUser();
+        setCurrentUserId(res?.data?.user?.id ?? null);
+      } catch (err) {
+        console.warn("Failed getting current user", err);
+      }
     })();
   }, []);
 
@@ -36,16 +41,22 @@ export default function ProductBookings(): JSX.Element {
     setLoading(true);
     try {
       // product
-      const { data: prod } = await supabase
+      const { data: prod, error: prodErr } = await supabase
         .from("products")
         .select("id,title,price,status,seller_id")
         .eq("id", productId)
         .single();
 
-      setProduct(prod ?? null);
+      if (prodErr) {
+        console.error("Failed to load product", prodErr);
+        toast.error("Failed to load product");
+        setProduct(null);
+      } else {
+        setProduct(prod ?? null);
+      }
 
-      // bookings with buyer profile
-      const { data, error, status } = await supabase
+      // bookings with buyer profile (requires FK buyer_id -> profiles.id)
+      const { data, error } = await supabase
         .from("bookings")
         .select(`
           id,
@@ -63,43 +74,34 @@ export default function ProductBookings(): JSX.Element {
         .eq("product_id", productId)
         .order("created_at", { ascending: true });
 
-      // Debug output
-      console.log("supabase response:", { status, error, data });
       if (error) {
-        // show the server error to help debug RLS or SQL problems
-        alert("Supabase error: " + error.message);
-      } else if (!data || data.length === 0) {
-        // no rows returned
-        alert("No bookings found");
-        // Helpful extra logs:
-        console.log("productId value (type):", productId, typeof productId);
-        console.log("Try running a raw check in SQL editor: SELECT * FROM bookings WHERE product_id = '" + productId + "';");
+        console.error("Failed to load bookings", error);
+        toast.error("Failed to load bookings: " + error.message);
+        setBookings([]);
       } else {
-        alert(`Bookings loaded: ${data.length}`);
-        console.log("bookings:", JSON.stringify(data, null, 2));
+        setBookings(data ?? []);
       }
-
-      setBookings(data ?? []);
     } catch (err) {
       console.error("fetchData bookings", err);
       toast.error("Failed to load bookings");
+      setBookings([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // subscribe to bookings updates for this product to keep UI live
   useEffect(() => {
     fetchData();
 
-    // subscribe to bookings updates for this product to keep UI live
     if (!productId) return;
     const chan = supabase
       .channel(`bookings-product-${productId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "bookings", filter: `product_id=eq.${productId}` },
-        (payload: any) => {
-          // simple approach: refetch. Alternatively patch local state by payload
+        (_payload: any) => {
+          // refetch when bookings change
           fetchData();
         }
       )
@@ -110,8 +112,13 @@ export default function ProductBookings(): JSX.Element {
     return () => {
       try {
         if (bookingsChanRef.current) {
+          // unsubscribe and remove channel
           bookingsChanRef.current.unsubscribe();
-          supabase.removeChannel(bookingsChanRef.current);
+          try {
+            supabase.removeChannel(bookingsChanRef.current);
+          } catch (e) {
+            // removeChannel may throw if channel already removed, ignore
+          }
           bookingsChanRef.current = null;
         }
       } catch (e) {
@@ -121,19 +128,26 @@ export default function ProductBookings(): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
-  // helper to insert notification row(s)
-  async function insertNotification(userId: string, title: string, body: string, data: any = {}) {
+  // helper to insert multiple notifications at once
+  async function insertNotifications(notifs: Array<{ user_id: string; title: string; body: string; data?: any }>) {
+    if (!notifs || notifs.length === 0) return { error: null, data: null };
+
+    const payload = notifs.map((n) => ({
+      user_id: n.user_id,
+      title: n.title,
+      body: n.body,
+      data: n.data ? JSON.stringify(n.data) : null,
+    }));
+
     try {
-      await supabase.from("notifications").insert([
-        {
-          user_id: userId,
-          title,
-          body,
-          data: data ? JSON.stringify(data) : null,
-        },
-      ]);
+      const { data, error } = await supabase.from("notifications").insert(payload);
+      if (error) {
+        console.warn("notification insert failed", error);
+      }
+      return { data, error };
     } catch (err) {
-      console.warn("notification insert failed", err);
+      console.warn("notification insert exception", err);
+      return { data: null, error: err };
     }
   }
 
@@ -157,27 +171,28 @@ export default function ProductBookings(): JSX.Element {
       // 1) update chosen booking -> accepted
       const { data: acceptedRow, error: acceptErr } = await supabase
         .from("bookings")
-        .update({ status: "accepted" })
+        .update({ status: "accepted", updated_at: new Date().toISOString() })
         .eq("id", bookingId)
         .select()
         .single();
 
       if (acceptErr) throw acceptErr;
+      if (!acceptedRow) throw new Error("Failed to accept booking");
 
       // 2) update other pending bookings -> rejected
       const { error: rejectErr } = await supabase
         .from("bookings")
-        .update({ status: "rejected" })
+        .update({ status: "rejected", updated_at: new Date().toISOString() })
         .eq("product_id", product.id)
         .eq("status", "pending")
         .neq("id", bookingId);
 
       if (rejectErr) {
-        // not fatal; we'll continue but log
         console.warn("reject others error", rejectErr);
       }
 
-      // 3) update product status -> sold
+      // 3) update product status -> sold (optimistic: update local state first)
+      setProduct((p) => (p ? { ...p, status: "sold" } : p));
       const { error: prodErr } = await supabase
         .from("products")
         .update({ status: "sold", updated_at: new Date().toISOString() })
@@ -185,43 +200,52 @@ export default function ProductBookings(): JSX.Element {
 
       if (prodErr) {
         console.warn("product update error", prodErr);
+        // continue anyway
       }
 
-      // 4) create notifications:
-      // - notify accepted buyer
-      // - notify all other bookers that their booking was rejected
-      // We fetch current bookings again to get buyer ids and statuses
-      const { data: allBookings } = await supabase
+      // 4) create notifications in one batch:
+      // fetch current bookings to find buyer ids and statuses
+      const { data: allBookings, error: allBErr } = await supabase
         .from("bookings")
         .select("id, buyer_id, status")
         .eq("product_id", product.id);
-        alert(product.id);
 
-      if (allBookings) {
+      if (allBErr) {
+        console.warn("Could not fetch all bookings for notifications", allBErr);
+      }
+
+      const notificationsToInsert: Array<{ user_id: string; title: string; body: string; data?: any }> = [];
+
+      if (allBookings && allBookings.length > 0) {
         for (const b of allBookings) {
-          alert(b.id);
-          alert(bookingId);
-          alert(b.buyer_id);
           if (!b.buyer_id) continue;
           if (b.id === bookingId) {
-            await insertNotification(
-              b.buyer_id,
-              "Booking accepted",
-              `Your booking for "${product.title}" was accepted by the seller.`,
-              { booking_id: b.id, product_id: product.id, status: "accepted" }
-            );
+            notificationsToInsert.push({
+              user_id: b.buyer_id,
+              title: "Booking accepted",
+              body: `Your booking for "${product.title}" was accepted by the seller.`,
+              data: { booking_id: b.id, product_id: product.id, status: "accepted" },
+            });
           } else {
-            await insertNotification(
-              b.buyer_id,
-              "Booking update",
-              `Your booking for "${product.title}" was not accepted.`,
-              { booking_id: b.id, product_id: product.id, status: "rejected" }
-            );
+            notificationsToInsert.push({
+              user_id: b.buyer_id,
+              title: "Booking update",
+              body: `Your booking for "${product.title}" was not accepted.`,
+              data: { booking_id: b.id, product_id: product.id, status: "rejected" },
+            });
           }
         }
       }
 
-      toast.success("Booking accepted — buyers notified.");
+      // insert notifications in batch and check result
+      const { error: notifErr } = await insertNotifications(notificationsToInsert);
+      if (notifErr) {
+        console.warn("Some notifications may have failed to insert", notifErr);
+        toast.success("Booking accepted. However, notifications could not be delivered to some buyers.");
+      } else {
+        toast.success("Booking accepted — buyers notified.");
+      }
+
       // refresh local list
       await fetchData();
     } catch (err: any) {
@@ -247,21 +271,31 @@ export default function ProductBookings(): JSX.Element {
     try {
       const { data: row, error } = await supabase
         .from("bookings")
-        .update({ status: "rejected" })
+        .update({ status: "rejected", updated_at: new Date().toISOString() })
         .eq("id", bookingId)
         .select()
         .single();
       if (error) throw error;
 
       if (row?.buyer_id) {
-        await insertNotification(
-          row.buyer_id,
-          "Booking rejected",
-          `Your booking for "${product.title}" was rejected by the seller.`,
-          { booking_id: bookingId, product_id: product.id, status: "rejected" }
-        );
+        const { error: notifErr } = await insertNotifications([
+          {
+            user_id: row.buyer_id,
+            title: "Booking rejected",
+            body: `Your booking for "${product.title}" was rejected by the seller.`,
+            data: { booking_id: bookingId, product_id: product.id, status: "rejected" },
+          },
+        ]);
+        if (notifErr) {
+          console.warn("notification insert failed for reject", notifErr);
+          toast.success("Booking rejected. But notification could not be sent.");
+        } else {
+          toast.success("Booking rejected and buyer notified.");
+        }
+      } else {
+        toast.success("Booking rejected.");
       }
-      toast.success("Booking rejected and buyer notified.");
+
       await fetchData();
     } catch (err: any) {
       console.error("rejectBooking error", err);
