@@ -127,29 +127,108 @@ export default function ProductBookings(): JSX.Element {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
+// ProductBookings.tsx (or ProductPageWithChat.tsx) — add finalizeSale
+    const finalizeSale = async (acceptedBookingId: string) => {
+      if (!product) return;
+      if (product.seller_id !== currentUserId) {
+        toast.error("Only the seller can finalize the sale.");
+        return;
+      }
+
+      const confirmed = window.confirm("Finalize sale and mark product as sold? This cannot be undone.");
+      if (!confirmed) return;
+
+      setProcessingId(acceptedBookingId);
+      try {
+        // 1) accept the chosen booking (idempotent)
+        const { data: acceptedRow, error: acceptErr } = await supabase
+          .from("bookings")
+          .update({ status: "accepted", updated_at: new Date().toISOString() })
+          .eq("id", acceptedBookingId)
+          .select()
+          .single();
+        if (acceptErr) throw acceptErr;
+
+        // 2) reject other pendings
+        const { error: rejectErr } = await supabase
+          .from("bookings")
+          .update({ status: "rejected", updated_at: new Date().toISOString() })
+          .eq("product_id", product.id)
+          .neq("id", acceptedBookingId)
+          .eq("status", "pending");
+
+        if (rejectErr) console.warn("reject others error", rejectErr);
+
+        // 3) update product status -> sold
+        const { error: prodErr } = await supabase
+          .from("products")
+          .update({ status: "sold", updated_at: new Date().toISOString() })
+          .eq("id", product.id);
+
+        if (prodErr) throw prodErr;
+
+        // 4) notifications
+        const { data: allBookings } = await supabase
+          .from("bookings")
+          .select("id, buyer_id, status")
+          .eq("product_id", product.id);
+
+        if (allBookings) {
+          for (const b of allBookings) {
+            if (!b.buyer_id) continue;
+            if (b.id === acceptedBookingId) {
+              await insertNotification(
+                b.buyer_id,
+                "Sale completed",
+                `The seller has finalized sale of "${product.title}". Please check your orders.`,
+                { booking_id: b.id, product_id: product.id, status: "accepted" }
+              );
+            } else {
+              await insertNotification(
+                b.buyer_id,
+                "Booking update",
+                `Your booking for "${product.title}" has been rejected.`,
+                { booking_id: b.id, product_id: product.id, status: "rejected" }
+              );
+            }
+          }
+        }
+
+        toast.success("Product marked as sold and buyers notified.");
+        await fetchData();
+      } catch (err: any) {
+        console.error("finalizeSale error", err);
+        toast.error(err?.message || "Failed to finalize sale");
+      } finally {
+        setProcessingId(null);
+      }
+    };
 
   // helper to insert multiple notifications at once
-  async function insertNotifications(notifs: Array<{ user_id: string; title: string; body: string; data?: any }>) {
-    if (!notifs || notifs.length === 0) return { error: null, data: null };
-
-    const payload = notifs.map((n) => ({
-      user_id: n.user_id,
-      title: n.title,
-      body: n.body,
-      data: n.data ? JSON.stringify(n.data) : null,
-    }));
-
-    try {
-      const { data, error } = await supabase.from("notifications").insert(payload);
-      if (error) {
-        console.warn("notification insert failed", error);
+      async function insertNotification(userId: string | null | undefined, title: string, body: string, data: any = {}) {
+        try {
+          if (!userId) {
+            console.warn("skip notification - missing userId", { title, body, data });
+            return null;
+          }
+          const payload = {
+            user_id: userId,
+            title,
+            body,
+            data: data ? JSON.stringify(data) : null,
+          };
+          const { data: res, error } = await supabase.from("notifications").insert([payload]).select().single();
+          if (error) {
+            console.warn("notification insert failed", error);
+            return { error };
+          }
+          return res;
+        } catch (err) {
+          console.warn("notification insert failed", err);
+          return { error: err };
+        }
       }
-      return { data, error };
-    } catch (err) {
-      console.warn("notification insert exception", err);
-      return { data: null, error: err };
-    }
-  }
+
 
   // Accept a booking:
   // - set booking.status = 'accepted' for chosen booking
@@ -341,6 +420,12 @@ const acceptBooking = async (bookingId: string) => {
                       </div>
                     </div>
                   </div>
+                  // inside bookings.map where you render a booking `b`:
+            {b.status === "accepted" && product.seller_id === currentUserId && (
+              <Button size="sm" onClick={() => finalizeSale(b.id)} disabled={processingId !== null}>
+                Finalize sale (mark as sold)
+              </Button>
+              )}
 
                   <div className="flex items-center gap-2">
                     {b.status === "pending" && canManage && (
