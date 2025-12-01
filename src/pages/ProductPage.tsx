@@ -338,7 +338,6 @@ export default function ProductPageWithChat(): JSX.Element {
         subscribeToMessages,
         subscribeToTyping,
         markMessagesAsRead,
-        chatOpen,
     ]);
 
     // openChat implementation (remains the same)
@@ -810,26 +809,33 @@ export default function ProductPageWithChat(): JSX.Element {
                             <Separator className="bg-slate-200 dark:bg-slate-800 my-6" />
 
                             {/* Action Buttons */}
+                            {product.status === "active" ? (
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <Button
-                                    size="lg"
-                                    className="flex-1 h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-500/30 rounded-xl transition-all duration-200 hover:scale-[1.01]"
-                                    onClick={handleAdd}
-                                    disabled={product.status !== "active"}
+                                size="lg"
+                                className="flex-1 h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-500/30 rounded-xl transition-all duration-200 hover:scale-[1.01]"
+                                onClick={handleAdd}
                                 >
-                                    <ShoppingCart className="mr-2 h-5 w-5" />{" "}
-                                    {product.status === "active"
-                                        ? "Add to Cart"
-                                        : "Unavailable"}
+                                <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
                                 </Button>
+
                                 <Button
-                                    size="lg"
-                                    variant="outline"
-                                    className="h-12 w-full sm:w-auto px-6 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                size="lg"
+                                variant="outline"
+                                className="h-12 w-full sm:w-auto px-6 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
                                 >
-                                    <Heart className="h-5 w-5 text-slate-500 hover:text-red-500 transition-colors" />
+                                <Heart className="h-5 w-5 text-slate-500 hover:text-red-500 transition-colors" />
                                 </Button>
                             </div>
+                            ) : (
+                            // when not active (sold/booked), hide booking/add-to-cart UI entirely —
+                            // keep a small notice so user understands the item isn't available
+                            <div className="py-3">
+                                <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm font-semibold">
+                                <span>Sold Out</span>
+                                </div>
+                            </div>
+                            )}
 
                             {/* Chat Button */}
                             <motion.button
@@ -851,7 +857,8 @@ export default function ProductPageWithChat(): JSX.Element {
                                     : "Chat with Seller"}
                             </motion.button>
                         </div>
-                        <BookingButton productId={product.id!} sellerId={product.seller_id}  />
+                       { product.status === "active" &&
+                        <BookingButton productId={product.id!} sellerId={product.seller_id}  />}
                         {/* Seller Profile Card */}
                         <div className="rounded-2xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
                             <h3 className="text-xl font-bold mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">

@@ -156,105 +156,81 @@ export default function ProductBookings(): JSX.Element {
   // - set other pending bookings for the same product to 'rejected'
   // - set product.status = 'sold'
   // - create notifications for accepted buyer and rejected buyers
-  const acceptBooking = async (bookingId: string) => {
-    if (!product) return;
-    if (product.seller_id !== currentUserId) {
-      toast.error("Only the seller can accept bookings for this product.");
-      return;
+  // ProductBookings.tsx — replace acceptBooking with:
+const acceptBooking = async (bookingId: string) => {
+  if (!product) return;
+  if (product.seller_id !== currentUserId) {
+    toast.error("Only the seller can accept bookings for this product.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Accept this booking? This will reject other pending bookings. You will still need to finalize the sale to mark the product as sold."
+  );
+  if (!confirmed) return;
+
+  setProcessingId(bookingId);
+  try {
+    // 1) accept the chosen booking
+    const { data: acceptedRow, error: acceptErr } = await supabase
+      .from("bookings")
+      .update({ status: "accepted", updated_at: new Date().toISOString() })
+      .eq("id", bookingId)
+      .select()
+      .single();
+
+    if (acceptErr) throw acceptErr;
+
+    // 2) reject other pending bookings (non-fatal)
+    const { error: rejectErr } = await supabase
+      .from("bookings")
+      .update({ status: "rejected", updated_at: new Date().toISOString() })
+      .eq("product_id", product.id)
+      .eq("status", "pending")
+      .neq("id", bookingId);
+
+    if (rejectErr) {
+      console.warn("reject others error", rejectErr);
     }
 
-    const confirmed = window.confirm("Accept this booking and mark product as sold? This will reject other pending bookings.");
-    if (!confirmed) return;
+    // 3) Notify accepted buyer + rejected buyers (get current bookings)
+    const { data: allBookings, error: allErr } = await supabase
+      .from("bookings")
+      .select("id, buyer_id, status")
+      .eq("product_id", product.id);
 
-    setProcessingId(bookingId);
-    try {
-      // 1) update chosen booking -> accepted
-      const { data: acceptedRow, error: acceptErr } = await supabase
-        .from("bookings")
-        .update({ status: "accepted", updated_at: new Date().toISOString() })
-        .eq("id", bookingId)
-        .select()
-        .single();
+    if (allErr) console.warn("fetch allBookings failed", allErr);
 
-      if (acceptErr) throw acceptErr;
-      if (!acceptedRow) throw new Error("Failed to accept booking");
-
-      // 2) update other pending bookings -> rejected
-      const { error: rejectErr } = await supabase
-        .from("bookings")
-        .update({ status: "rejected", updated_at: new Date().toISOString() })
-        .eq("product_id", product.id)
-        .eq("status", "pending")
-        .neq("id", bookingId);
-
-      if (rejectErr) {
-        console.warn("reject others error", rejectErr);
-      }
-
-      // 3) update product status -> sold (optimistic: update local state first)
-      setProduct((p) => (p ? { ...p, status: "sold" } : p));
-      const { error: prodErr } = await supabase
-        .from("products")
-        .update({ status: "sold", updated_at: new Date().toISOString() })
-        .eq("id", product.id);
-
-      if (prodErr) {
-        console.warn("product update error", prodErr);
-        // continue anyway
-      }
-
-      // 4) create notifications in one batch:
-      // fetch current bookings to find buyer ids and statuses
-      const { data: allBookings, error: allBErr } = await supabase
-        .from("bookings")
-        .select("id, buyer_id, status")
-        .eq("product_id", product.id);
-
-      if (allBErr) {
-        console.warn("Could not fetch all bookings for notifications", allBErr);
-      }
-
-      const notificationsToInsert: Array<{ user_id: string; title: string; body: string; data?: any }> = [];
-
-      if (allBookings && allBookings.length > 0) {
-        for (const b of allBookings) {
-          if (!b.buyer_id) continue;
-          if (b.id === bookingId) {
-            notificationsToInsert.push({
-              user_id: b.buyer_id,
-              title: "Booking accepted",
-              body: `Your booking for "${product.title}" was accepted by the seller.`,
-              data: { booking_id: b.id, product_id: product.id, status: "accepted" },
-            });
-          } else {
-            notificationsToInsert.push({
-              user_id: b.buyer_id,
-              title: "Booking update",
-              body: `Your booking for "${product.title}" was not accepted.`,
-              data: { booking_id: b.id, product_id: product.id, status: "rejected" },
-            });
-          }
+    if (allBookings && allBookings.length) {
+      for (const b of allBookings) {
+        if (!b.buyer_id) continue; // guard - avoid null user_id insert causing 400
+        if (b.id === bookingId) {
+          await insertNotification(
+            b.buyer_id,
+            "Booking accepted",
+            `Your booking for "${product.title}" was accepted by the seller.`,
+            { booking_id: b.id, product_id: product.id, status: "accepted" }
+          );
+        } else {
+          await insertNotification(
+            b.buyer_id,
+            "Booking update",
+            `Your booking for "${product.title}" was not selected.`,
+            { booking_id: b.id, product_id: product.id, status: "rejected" }
+          );
         }
       }
-
-      // insert notifications in batch and check result
-      const { error: notifErr } = await insertNotifications(notificationsToInsert);
-      if (notifErr) {
-        console.warn("Some notifications may have failed to insert", notifErr);
-        toast.success("Booking accepted. However, notifications could not be delivered to some buyers.");
-      } else {
-        toast.success("Booking accepted — buyers notified.");
-      }
-
-      // refresh local list
-      await fetchData();
-    } catch (err: any) {
-      console.error("acceptBooking error", err);
-      toast.error(err?.message || "Failed to accept booking");
-    } finally {
-      setProcessingId(null);
     }
-  };
+
+    toast.success("Booking accepted. Seller must finalize the sale to mark product as sold.");
+    await fetchData(); // refresh bookings & product
+  } catch (err: any) {
+    console.error("acceptBooking error", err);
+    toast.error(err?.message || "Failed to accept booking");
+  } finally {
+    setProcessingId(null);
+  }
+};
 
   // Reject a single booking: change status -> rejected, notify that buyer
   const rejectBooking = async (bookingId: string) => {
