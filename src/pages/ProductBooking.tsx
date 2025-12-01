@@ -153,80 +153,43 @@ useEffect(() => {
   }, [productId]);
 // ProductBookings.tsx (or ProductPageWithChat.tsx) — add finalizeSale
     const finalizeSale = async (acceptedBookingId: string) => {
-      if (!product) return;
-      if (product.seller_id !== currentUserId) {
-        toast.error("Only the seller can finalize the sale.");
-        return;
-      }
+  if (!product) return;
+  // quick client-side guard (RPC also checks auth.uid())
+  if (product.seller_id !== currentUserId) {
+    toast.error("Only the seller can finalize the sale.");
+    return;
+  }
 
-      const confirmed = window.confirm("Finalize sale and mark product as sold? This cannot be undone.");
-      if (!confirmed) return;
+  const confirmed = window.confirm("Finalize sale and mark product as sold? This cannot be undone.");
+  if (!confirmed) return;
 
-      setProcessingId(acceptedBookingId);
-      try {
-        // 1) accept the chosen booking (idempotent)
-        const { data: acceptedRow, error: acceptErr } = await supabase
-          .from("bookings")
-          .update({ status: "accepted", updated_at: new Date().toISOString() })
-          .eq("id", acceptedBookingId)
-          .select()
-          .single();
-        if (acceptErr) throw acceptErr;
+  setProcessingId(acceptedBookingId);
+  try {
+    const { data, error } = await supabase.rpc("finalize_sale_rpc", { p_booking_id: acceptedBookingId });
 
-        // 2) reject other pendings
-        const { error: rejectErr } = await supabase
-          .from("bookings")
-          .update({ status: "rejected", updated_at: new Date().toISOString() })
-          .eq("product_id", product.id)
-          .neq("id", acceptedBookingId)
-          .eq("status", "pending");
+    if (error) {
+      console.error("finalize_sale_rpc error", error);
+      toast.error(error.message || "Could not finalize sale");
+      return;
+    }
 
-        if (rejectErr) console.warn("reject others error", rejectErr);
+    // data is the jsonb your RPC returns
+    if (data?.status === "ok") {
+      toast.success("Product marked as sold");
+      await fetchData(); // refresh product + bookings
+    } else {
+      // RPC returned an error payload (e.g. forbidden / booking not found)
+      console.error("finalize_sale_rpc result", data);
+      toast.error(data?.message || "Finalize failed");
+    }
+  } catch (err: any) {
+    console.error("finalizeSaleRpc catch", err);
+    toast.error(err?.message || "Failed to finalize sale");
+  } finally {
+    setProcessingId(null);
+  }
+};
 
-        // 3) update product status -> sold
-        const { error: prodErr } = await supabase
-          .from("products")
-          .update({ status: "sold", updated_at: new Date().toISOString() })
-          .eq("id", product.id);
-
-        if (prodErr) throw prodErr;
-
-        // 4) notifications
-        const { data: allBookings } = await supabase
-          .from("bookings")
-          .select("id, buyer_id, status")
-          .eq("product_id", product.id);
-
-        if (allBookings) {
-          for (const b of allBookings) {
-            if (!b.buyer_id) continue;
-            if (b.id === acceptedBookingId) {
-              await insertNotification(
-                b.buyer_id,
-                "Sale completed",
-                `The seller has finalized sale of "${product.title}". Please check your orders.`,
-                { booking_id: b.id, product_id: product.id, status: "accepted" }
-              );
-            } else {
-              await insertNotification(
-                b.buyer_id,
-                "Booking update",
-                `Your booking for "${product.title}" has been rejected.`,
-                { booking_id: b.id, product_id: product.id, status: "rejected" }
-              );
-            }
-          }
-        }
-
-        toast.success("Product marked as sold and buyers notified.");
-        await fetchData();
-      } catch (err: any) {
-        console.error("finalizeSale error", err);
-        toast.error(err?.message || "Failed to finalize sale");
-      } finally {
-        setProcessingId(null);
-      }
-    };
 
   // helper to insert multiple notifications at once
       async function insertNotification(userId: string | null | undefined, title: string, body: string, data: any = {}) {
@@ -404,6 +367,9 @@ const acceptBooking = async (bookingId: string) => {
       </div>
     );
   }
+    console.log("SELLER:", product.seller_id);
+    console.log("CURRENT USER:", currentUserId);
+    console.log("MATCH?", product.seller_id === currentUserId);
 
   return (
     <div className="max-w-5xl mx-auto p-6">
@@ -434,24 +400,23 @@ const acceptBooking = async (bookingId: string) => {
                       <div className="flex items-center gap-2">
                         <div className="font-semibold truncate">{buyer?.full_name ?? "Buyer"}</div>
                         <div className="text-xs text-slate-400">• {b.buyer_id}</div>
-                        <div className={`ml-2 px-2 py-0.5 text-xs rounded-full ${b.status === "pending" ? "bg-amber-100 text-amber-600" : b.status === "accepted" ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-600"}`}>
+                        <div className={`ml-2 px-2 py-0.5 text-xs rounded-full ${b.status === "pending" ? "bg-amber-100 text-amber-600" : b.status === "accepted" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
                           {b.status}
                         </div>
                       </div>
                       <div className="text-sm text-slate-500 truncate">{b.message ?? "No message"}</div>
                       <div className="text-xs text-slate-400 mt-1">
-                        Offer: {b.offered_price != null ? `₹${Number(b.offered_price).toLocaleString()}` : "—"} • {b.preferred_date ? format(new Date(b.preferred_date), "PPP") : "No date"} • {format(new Date(b.created_at), "Pp")}
+                        Offer: {b.offered_price != null ? `$${Number(b.offered_price).toLocaleString()}` : "—"} • {b.preferred_date ? format(new Date(b.preferred_date), "PPP") : "No date"} • {format(new Date(b.created_at), "Pp")}
                       </div>
                     </div>
                   </div>
-                  // inside bookings.map where you render a booking `b`:
-              {product.seller_id === currentUserId && acceptedBooking && product.status !== "sold" && (
-                <div className="mt-3">
-                  <Button size="lg" variant="destructive" onClick={() => finalizeSale(acceptedBooking.id)} disabled={processingId !== null}>
-                    Finalize sale — Mark product as sold
-                  </Button>
-                </div>
-              )}
+                  {product.seller_id === currentUserId && acceptedBooking && product.status !== "sold" && (
+                    <div className="mt-3">
+                      <Button size="lg" variant="destructive" onClick={() => finalizeSale(acceptedBooking.id)} disabled={processingId !== null}>
+                        Finalize sale — Mark product as sold
+                      </Button>
+                    </div>
+                  )}
 
 
                   <div className="flex items-center gap-2">
