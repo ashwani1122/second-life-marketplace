@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { Loader, MessageSquare, Clock, User, Box } from "lucide-react";
 import { ChatListItem } from "@/types/chatList";
+import { toast } from "sonner";
 
 // Simplified type for the list item
 
@@ -26,6 +27,7 @@ export default function InboxPage(): JSX.Element {
     const [chats, setChats] = useState<ChatListItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [status , setStatus] =  useState()
 
     const fetchChats = useCallback(async () => {
         setLoading(true);
@@ -46,7 +48,7 @@ export default function InboxPage(): JSX.Element {
                 .select(`
                     id, 
                     product_id, 
-                    products(title, seller_id),
+                    products(title, seller_id ,status),
                     buyer_id, 
                     seller_id,
                     messages(content, created_at, read, sender_id),
@@ -62,7 +64,8 @@ export default function InboxPage(): JSX.Element {
             const processedChats: ChatListItem[] = (rawChats || []).map((chat: any) => {
                 const productTitle = chat.products?.title || "Unknown Product";
                 const isSeller = chat.seller_id === userId;
-                
+                const productStatus = chat.products?.status;
+                setStatus(productStatus);
                 // Determine the partner's name
                 const partnerName = isSeller 
                     ? chat.buyer?.full_name || "Buyer"
@@ -80,6 +83,7 @@ export default function InboxPage(): JSX.Element {
                     product_id: chat.product_id,
                     product_title: productTitle,
                     partner_name: partnerName,
+                    productStatus,
                     last_message_content: lastMessage?.content || "[Attachment/Media]",
                     last_message_time: lastMessage?.created_at || chat.created_at,
                     is_unread: isUnread,
@@ -130,7 +134,12 @@ export default function InboxPage(): JSX.Element {
                             key={chat.id} 
                             to={`/product/${chat.product_id}`} 
                             state={{ openChatId: chat.id }} 
-                            // Enhanced styling for readability and visual feedback
+                            onClick={(e) => {
+                                if (chat.productStatus !== "active") {
+                                e.preventDefault();
+                                toast.error("This product is no longer available.");
+                                }
+                            }}
                             className={`
                                 flex items-center p-5 rounded-xl shadow-md transition-all duration-200 
                                 border ${chat.is_unread ? 'border-indigo-400 shadow-indigo-200/50' : 'border-slate-200 dark:border-slate-700'}

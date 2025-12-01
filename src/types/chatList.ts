@@ -6,4 +6,5 @@ export interface ChatListItem {
     last_message_content?: string;
     last_message_time: string;
     is_unread: boolean;
+    productStatus?: string;
 }
