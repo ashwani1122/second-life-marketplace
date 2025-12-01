@@ -11,13 +11,11 @@ import Sell from "./pages/Sell";
 import NotFound from "./pages/NotFound";
 // import { ProductPage } from "./pages/ProductPage";
 import Profile from "./pages/Profile";
-import ProductPage from "./pages/ProductPage";
-import CartPage from "./pages/CartPage";
-import Dashboard from "./pages/Dashboard";
 import { ChatGlobalListener } from "./components/chatGlobalListener";
 import InboxPage from "./pages/InboxPage";
 import ProductPageWithChat from "./pages/ProductPage";
 import ProductBookings from "./pages/ProductBooking";
+import SellerDashboard from "./pages/SellerDashboard";
 
 const queryClient = new QueryClient();
 
@@ -37,8 +35,7 @@ const App = () => (
           <Route path="/sell" element={<Sell />} />
           <Route path="/product/:id" element={<ProductPageWithChat />} /> 
           <Route path="/profile" element={<Profile />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<SellerDashboard />} />
           <Route path="/inbox" element={<InboxPage />} />
           <Route path="/product/:id/bookings" element={<ProductBookings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

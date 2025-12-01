@@ -37,7 +37,7 @@ export const ProfileModal = ({
                         Complete Your Profile 📦
                     </h2>
                     <p className="text-sm text-muted-foreground text-center">
-                        Please provide your phone and address to proceed to the cart.
+                        Please provide your phone and address to proceed to sell your product.
                     </p>
                     <div className="flex flex-col gap-3">
                         <Input
