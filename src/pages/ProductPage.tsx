@@ -339,7 +339,7 @@ export default function ProductPageWithChat(): JSX.Element {
         subscribeToTyping,
         markMessagesAsRead,
     ]);
-
+    
     // openChat implementation (remains the same)
     const openChat = useCallback(async () => {
         if (!product) return;

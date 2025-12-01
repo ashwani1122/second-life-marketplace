@@ -16,6 +16,7 @@ import { format } from "date-fns";
 
 export default function ProductBookings(): JSX.Element {
   const { id: productId } = useParams<{ id: string }>();
+  const [acceptedBooking, setAcceptedBooking] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<any | null>(null);
   const [bookings, setBookings] = useState<any[]>([]);
@@ -34,6 +35,29 @@ export default function ProductBookings(): JSX.Element {
       }
     })();
   }, []);
+  // after loading product, fetch bookings for this product
+
+
+useEffect(() => {
+  if (!product?.id) return;
+  let mounted = true;
+  (async () => {
+    try {
+      const { data } = await supabase
+        .from("bookings")
+        .select("id,buyer_id,status")
+        .eq("product_id", product.id)
+        .eq("status", "accepted")
+        .limit(1);
+      if (!mounted) return;
+      setAcceptedBooking((data && data.length > 0) ? data[0] : null);
+    } catch (err) {
+      console.error("fetch acceptedBooking", err);
+      setAcceptedBooking(null);
+    }
+  })();
+  return () => { mounted = false; };
+}, [product?.id]);
 
   // fetch product + bookings
   const fetchData = async () => {
@@ -89,7 +113,7 @@ export default function ProductBookings(): JSX.Element {
       setLoading(false);
     }
   };
-
+      
   // subscribe to bookings updates for this product to keep UI live
   useEffect(() => {
     fetchData();
@@ -421,11 +445,14 @@ const acceptBooking = async (bookingId: string) => {
                     </div>
                   </div>
                   // inside bookings.map where you render a booking `b`:
-            {b.status === "accepted" && product.seller_id === currentUserId && (
-              <Button size="sm" onClick={() => finalizeSale(b.id)} disabled={processingId !== null}>
-                Finalize sale (mark as sold)
-              </Button>
+              {product.seller_id === currentUserId && acceptedBooking && product.status !== "sold" && (
+                <div className="mt-3">
+                  <Button size="lg" variant="destructive" onClick={() => finalizeSale(acceptedBooking.id)} disabled={processingId !== null}>
+                    Finalize sale — Mark product as sold
+                  </Button>
+                </div>
               )}
+
 
                   <div className="flex items-center gap-2">
                     {b.status === "pending" && canManage && (
