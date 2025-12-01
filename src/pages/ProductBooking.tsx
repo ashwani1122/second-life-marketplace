@@ -45,7 +45,7 @@ export default function ProductBookings(): JSX.Element {
       setProduct(prod ?? null);
 
       // bookings with buyer profile
-      const { data: bks } = await supabase
+      const { data, error, status } = await supabase
         .from("bookings")
         .select(`
           id,
@@ -63,7 +63,23 @@ export default function ProductBookings(): JSX.Element {
         .eq("product_id", productId)
         .order("created_at", { ascending: true });
 
-      setBookings(bks ?? []);
+      // Debug output
+      console.log("supabase response:", { status, error, data });
+      if (error) {
+        // show the server error to help debug RLS or SQL problems
+        alert("Supabase error: " + error.message);
+      } else if (!data || data.length === 0) {
+        // no rows returned
+        alert("No bookings found");
+        // Helpful extra logs:
+        console.log("productId value (type):", productId, typeof productId);
+        console.log("Try running a raw check in SQL editor: SELECT * FROM bookings WHERE product_id = '" + productId + "';");
+      } else {
+        alert(`Bookings loaded: ${data.length}`);
+        console.log("bookings:", JSON.stringify(data, null, 2));
+      }
+
+      setBookings(data ?? []);
     } catch (err) {
       console.error("fetchData bookings", err);
       toast.error("Failed to load bookings");
@@ -179,9 +195,13 @@ export default function ProductBookings(): JSX.Element {
         .from("bookings")
         .select("id, buyer_id, status")
         .eq("product_id", product.id);
+        alert(product.id);
 
       if (allBookings) {
         for (const b of allBookings) {
+          alert(b.id);
+          alert(bookingId);
+          alert(b.buyer_id);
           if (!b.buyer_id) continue;
           if (b.id === bookingId) {
             await insertNotification(
