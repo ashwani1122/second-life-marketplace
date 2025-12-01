@@ -74,6 +74,8 @@ interface Product {
   view_count: number;
   product_images: { image_url: string }[];
   categories: { name: string } | null;
+  status?: string;
+  bookings?: { id: string; status: string }[]; // included from supabase join
 }
 
 interface Category {
@@ -109,6 +111,7 @@ const Browse = () => {
   useEffect(() => {
     fetchCategories();
     fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchCategories = async () => {
@@ -127,28 +130,49 @@ const Browse = () => {
 
   const fetchProducts = async () => {
     setLoading(true);
-    let query = supabase
-      .from("products")
-      .select(`*, product_images(image_url), categories(name)`)
-      .eq("status", "active")
-      .order("created_at", { ascending: false });
+    try {
+      // include bookings (requires FK bookings.product_id -> products.id) so we can determine "booked" status
+      let query = supabase
+        .from("products")
+        .select(`*, product_images(image_url), categories(name), bookings(id, status)`)
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
 
-    if (selectedCategory !== "all") {
-      query = query.eq("category_id", selectedCategory);
-    }
+      if (selectedCategory !== "all") {
+        query = query.eq("category_id", selectedCategory);
+      }
 
-    if (searchQuery) {
-      query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
-    }
+      if (searchQuery) {
+        query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+      }
 
-    const { data, error } = await query;
+      const { data, error } = await query;
 
-    if (error) {
+      if (error) {
+        toast({ title: "Error", description: "Failed to load products", variant: "destructive" });
+        setProducts([]);
+      } else {
+        // map results to Product[] with safety checks
+        setProducts((data || []).map((p: any) => ({
+          id: p.id,
+          title: p.title,
+          price: p.price,
+          location: p.location,
+          condition: p.condition,
+          view_count: p.view_count ?? 0,
+          product_images: p.product_images ?? [],
+          categories: p.categories ?? null,
+          status: p.status,
+          bookings: p.bookings ?? [],
+        })));
+      }
+    } catch (err) {
+      console.error("fetchProducts error", err);
       toast({ title: "Error", description: "Failed to load products", variant: "destructive" });
-    } else {
-      setProducts(data || []);
+      setProducts([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -156,34 +180,33 @@ const Browse = () => {
       fetchProducts();
     }, 300);
     return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, selectedCategory]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 transition-colors duration-500 font-sans">
       
-     
-      {/* --- SEARCH HERO SECTION --- */}
-      <section className="relative pt-12 pb-8 px-4">
-         <div className="container mx-auto text-center space-y-6">
-            <motion.div 
-               initial={{ opacity: 0, y: 20 }}
-               animate={{ opacity: 1, y: 0 }}
-            >
-               <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-2">
-                  Find exactly what you <span className="text-indigo-600 dark:text-indigo-400">need.</span>
-               </h1>
-               <p className="text-slate-500 dark:text-slate-400">
-                  Search through thousands of verified local listings.
-               </p>
-            </motion.div>
-            
-           
-            
-         </div>
-         
-         {/* Background Glow */}
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-32 bg-indigo-500/20 blur-[100px] -z-10 rounded-full" />
-      </section>
+      {/* Top controls */}
+      <div className="container mx-auto px-4 pt-8">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+          <div className="w-full sm:w-2/3">
+            <MovingBorderInput
+              value={searchQuery}
+              onChange={(e: any) => setSearchQuery(e.target.value)}
+              placeholder="Search title, description..."
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={toggleTheme} className="rounded-full">
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </Button>
+            <Button variant="outline" size="sm" className="hidden sm:inline-flex items-center gap-2 rounded-full border-slate-200 dark:border-slate-700">
+              <SlidersHorizontal size={14} /> Filters
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* --- CATEGORY PILLS (Horizontal Scroll) --- */}
       <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F19]">
@@ -199,7 +222,7 @@ const Browse = () => {
               >
                 All Items
               </button>
-              
+
               {categories.map((cat) => (
                 <button
                   key={cat.id}
@@ -219,17 +242,6 @@ const Browse = () => {
 
       {/* --- MAIN CONTENT --- */}
       <div className="container mx-auto px-4 py-12">
-        {/* <div className="flex items-center justify-between mb-8">
-           <h2 className="font-bold text-xl flex items-center gap-2">
-             Results <span className="text-slate-400 text-sm font-normal">({products.length} items)</span>
-           </h2>
-           <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="hidden sm:flex items-center gap-2 rounded-full border-slate-200 dark:border-slate-700">
-                 <SlidersHorizontal size={14} /> Filters
-              </Button>
-           </div>
-        </div> */}
-
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <ProductSkeleton key={i} />)}
@@ -255,31 +267,63 @@ const Browse = () => {
              </button>
           </motion.div>
         ) : (
-          <motion.div 
-             layout 
-             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-          >
+          <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <AnimatePresence>
-              {products.map((product, index) => (
-                <motion.div
-                  key={product.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <ProductCard
-                    id={product.id}
-                    title={product.title}
-                    price={product.price}
-                    location={product.location}
-                    condition={product.condition}
-                    imageUrl={product.product_images[0]?.image_url || "/placeholder.svg"}
-                    viewCount={product.view_count}
-                    categoryName={product.categories?.name}
-                  />
-                </motion.div>
-              ))}
+              {products.map((product, index) => {
+                // product is booked if product.status === 'sold' OR if any booking with status 'accepted' exists
+                const hasAcceptedBooking = (product.bookings || []).some((b) => b.status === "accepted");
+                const isBooked = product.status === "sold" || hasAcceptedBooking;
+
+                return (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ delay: index * 0.03 }}
+                  >
+                    {/* Card wrapper to add overlay badge and nicer hover effect */}
+                    <div className="relative rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg hover:-translate-y-1 transform transition-all duration-200 overflow-hidden">
+                      
+                      {/* Booked badge (top-right) */}
+                      {isBooked && (
+                        <Link to={`/product/${product.id}/bookings`} className="absolute top-3 right-3 z-20">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium shadow-sm hover:scale-105 transform transition">
+                            <ShoppingBag size={14} />
+                            Booked
+                          </div>
+                        </Link>
+                      )}
+
+                      {/* Product Card (existing component) */}
+                      <div className="p-3">
+                        <ProductCard
+                          id={product.id}
+                          title={product.title}
+                          price={product.price}
+                          location={product.location}
+                          condition={product.condition}
+                          imageUrl={product.product_images[0]?.image_url || "/placeholder.svg"}
+                          viewCount={product.view_count}
+                          categoryName={product.categories?.name}
+                        />
+                      </div>
+
+                      {/* bottom strip with price & quick actions */}
+                      <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3">
+                        <div className="text-sm font-semibold">
+                          ₹{Number(product.price).toLocaleString()}
+                          <div className="text-xs text-slate-400 font-normal">{product.location}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Link to={`/product/${product.id}`} className="text-sm text-indigo-600 hover:underline">View</Link>
+                          <Link to={`/product/${product.id}/bookings`} className="text-sm text-slate-500 hover:text-indigo-600">Bookings</Link>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </motion.div>
         )}
