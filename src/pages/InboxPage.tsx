@@ -27,7 +27,7 @@ export default function InboxPage(): JSX.Element {
     const [chats, setChats] = useState<ChatListItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-    const [status , setStatus] =  useState()
+    // const [status , setStatus] =  useState()
 
     const fetchChats = useCallback(async () => {
         setLoading(true);
@@ -65,7 +65,7 @@ export default function InboxPage(): JSX.Element {
                 const productTitle = chat.products?.title || "Unknown Product";
                 const isSeller = chat.seller_id === userId;
                 const productStatus = chat.products?.status;
-                setStatus(productStatus);
+                // setStatus(productStatus);
                 // Determine the partner's name
                 const partnerName = isSeller 
                     ? chat.buyer?.full_name || "Buyer"

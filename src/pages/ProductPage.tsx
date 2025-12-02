@@ -811,21 +811,20 @@ export default function ProductPageWithChat(): JSX.Element {
                             {/* Action Buttons */}
                             {product.status === "active" ? (
                             <div className="flex flex-col sm:flex-row gap-3">
-                                <Button
-                                size="lg"
-                                className="flex-1 h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-500/30 rounded-xl transition-all duration-200 hover:scale-[1.01]"
-                                onClick={handleAdd}
-                                >
-                                <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
-                                </Button>
-
-                                <Button
+                                {product.seller_id ===currentUserId &&  product.status === "active" ? null:
+                                <div className=" w-full flex gap-3 w-full justify-between ">
+                                    <BookingButton productId={product.id!} sellerId={product.seller_id}  />
+                                    <Button
                                 size="lg"
                                 variant="outline"
                                 className="h-12 w-full sm:w-auto px-6 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
                                 >
                                 <Heart className="h-5 w-5 text-slate-500 hover:text-red-500 transition-colors" />
                                 </Button>
+                                </div>
+                                    }
+
+                                
                             </div>
                             ) : (
                             // when not active (sold/booked), hide booking/add-to-cart UI entirely —
@@ -857,8 +856,7 @@ export default function ProductPageWithChat(): JSX.Element {
                                     : "Chat with Seller"}
                             </motion.button>
                         </div>
-                       { product.status === "active" &&
-                        <BookingButton productId={product.id!} sellerId={product.seller_id}  />}
+                       
                         {/* Seller Profile Card */}
                         <div className="rounded-2xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
                             <h3 className="text-xl font-bold mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
@@ -878,7 +876,7 @@ export default function ProductPageWithChat(): JSX.Element {
                                 </div>
                                 <div className="space-y-0.5">
                                     <p className="text-lg font-bold">
-                                        {sellerProfile?.full_name ?? "Unknown Seller"}
+                                        {product.seller_id === currentUserId ? "You" : sellerProfile?.full_name ?? "Unknown Seller"}
                                     </p>
                                     <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
                                         <MapPin size={14} />
