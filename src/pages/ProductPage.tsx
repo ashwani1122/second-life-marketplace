@@ -856,9 +856,18 @@ export default function ProductPageWithChat(): JSX.Element {
                                     : "Chat with Seller"}
                             </motion.button>
 
-                            {product.seller_id === currentUserId && <Link to ={`/product/${product.id}/bookings`} className="w-full h-12 flex items-center justify-center gap-3 mt-3 text-base font-semibold border-2 rounded-xl transition-all duration-200">
-                                See all bookings for this product
-                            </Link>}
+                            {product.seller_id === currentUserId && <motion.button
+                                whileHover={{ scale: 1.01, boxShadow: "0 4px 15px rgba(99, 102, 241, 0.4)" }}
+                                whileTap={{ scale: 0.99 }}
+                                className={`w-full h-12 flex items-center justify-center gap-3 mt-3 text-base font-semibold border-2 rounded-xl transition-all duration-200 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/40
+                                
+                                `}
+                            >
+                                <Link to={`/product/${product.id}/bookings`} className="flex items-center gap-3">
+                                    See Bookings for this Product 
+                                </Link>
+                            </motion.button>
+}
                         </div>
                        
                         {/* Seller Profile Card */}
