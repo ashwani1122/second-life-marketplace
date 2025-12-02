@@ -1,49 +1,107 @@
-// in SellerBookingsPanel.tsx
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client"; // 👈 NEW
 import { updateBookingStatus } from "@/lib/bookings"; // your helper
-// If you created seller_accept_booking SQL function, prefer calling rpc:
-// await supabase.rpc("seller_accept_booking", { p_booking_id: bookingId, p_seller_id: sellerId });
 
-export default function SellerBookingsPanel({ bookings, reload }: { bookings: any[]; reload: () => void }) {
+type SellerBookingsPanelProps = {
+  bookings: any[];
+  reload: () => void;
+};
+
+export default function SellerBookingsPanel({
+  bookings,
+  reload,
+}: SellerBookingsPanelProps) {
   const accept = async (b: any) => {
     try {
-      // Prefer RPC to guarantee atomic behavior:
-      // await supabase.rpc("seller_accept_booking", { p_booking_id: b.id, p_seller_id: b.seller_id });
-      await updateBookingStatus(b.id, "accepted");
-      toast.success("Accepted");
+      // --- Preferred: use RPC for atomic accept+reject-other logic ---
+      const { error } = await supabase.rpc("seller_accept_booking", {
+        p_booking_id: b.id,
+        p_seller_id: b.seller_id,
+      });
+
+      if (error) {
+        console.error("seller_accept_booking error", error);
+
+        // if you created the UNIQUE index (one accepted booking per product)
+        // catching duplicate key violation gives a nice UX message:
+        if (
+          error.code === "23505" ||
+          (typeof error.message === "string" &&
+            error.message.includes("bookings_one_accepted_per_product"))
+        ) {
+          toast.error(
+            "This product is already booked (another booking was accepted)."
+          );
+        } else {
+          toast.error(error.message || "Failed to accept booking");
+        }
+        return;
+      }
+
+      toast.success("Booking accepted");
       reload();
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed");
+      console.error("accept booking catch", err);
+      toast.error(err?.message ?? "Failed to accept booking");
     }
   };
 
   const reject = async (b: any) => {
     try {
+      // Simple reject is fine with your existing helper
       await updateBookingStatus(b.id, "rejected");
-      toast.success("Rejected");
+      toast.success("Booking rejected");
       reload();
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed");
+      console.error("reject booking catch", err);
+      toast.error(err?.message ?? "Failed to reject booking");
     }
   };
 
   return (
     <div>
       {bookings.map((b) => (
-        <div key={b.id} className="p-3 bg-white dark:bg-slate-800 rounded-lg mb-3 flex items-center justify-between">
+        <div
+          key={b.id}
+          className="p-3 bg-white dark:bg-slate-800 rounded-lg mb-3 flex items-center justify-between"
+        >
           <div>
-            <div className="font-semibold">{b.products?.title ?? "Product"}</div>
-            <div className="text-xs text-slate-500">By: {b.buyer_id}</div>
-            <div className="text-sm">{b.offered_price ? `Offered: ₹${b.offered_price}` : "No price offered"}</div>
+            <div className="font-semibold">
+              {b.products?.title ?? "Product"}
+            </div>
+            <div className="text-xs text-slate-500">
+              By: {b.buyer_id}
+            </div>
+            <div className="text-sm">
+              {b.offered_price
+                ? `Offered: ₹${b.offered_price}`
+                : "No price offered"}
+            </div>
           </div>
-          <div className="flex gap-2">
-            {b.status === "pending" && <>
-              <Button size="sm" onClick={() => accept(b)}>Accept</Button>
-              <Button size="sm" variant="outline" onClick={() => reject(b)}>Reject</Button>
-            </>}
-            {b.status !== "pending" && <div className="text-xs font-medium">{b.status}</div>}
+
+          <div className="flex gap-2 items-center">
+            {b.status === "pending" && (
+              <>
+                <Button size="sm" onClick={() => accept(b)}>
+                  Accept
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => reject(b)}
+                >
+                  Reject
+                </Button>
+              </>
+            )}
+
+            {b.status !== "pending" && (
+              <div className="text-xs font-medium capitalize">
+                {b.status}
+              </div>
+            )}
           </div>
         </div>
       ))}

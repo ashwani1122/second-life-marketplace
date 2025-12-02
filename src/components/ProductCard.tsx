@@ -85,7 +85,7 @@ export const ProductCard = ({
         )}
 
         {/* Condition badge: render only when NOT booked */}
-        {badgeState !== "booked" && (
+        {!badgeState  && (
           <Badge
             className={`absolute ${badgeState ? "top-11" : "top-3"} right-3 ${conditionColors[condition] || "bg-muted"}`}
           >
