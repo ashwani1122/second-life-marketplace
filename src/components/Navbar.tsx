@@ -11,6 +11,8 @@ import {
   Mail,
   Menu,
   X,
+  LayoutDashboard,
+  Search,
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -268,7 +270,7 @@ export const Navbar = () => {
                       : "text-foreground hover:text-primary"
                   }`}
                 >
-                  Browse
+                  <Search className="h-4 w-4" /> Browse
                 </Link>
                 <Link
                   to="/dashboard"
@@ -278,7 +280,7 @@ export const Navbar = () => {
                       : "text-foreground hover:text-primary"
                   }`}
                 >
-                  <ShoppingBag className="h-4 w-4" /> Dashboard
+                  <LayoutDashboard className="h-4 w-4" /> Dashboard
                 </Link>
                 {/* SELL: replaced Link with handler button */}
                 <button
@@ -407,10 +409,20 @@ export const Navbar = () => {
           >
             <Plus className="h-5 w-5" /> Sell
           </button>
-
+          
+          <Link
+            to="/dashboard"
+            className={`flex items-center gap-3 p-2 rounded-lg text-lg ${
+              isActive("/dashboard")
+                ? "bg-accent text-primary font-medium"
+                : "text-foreground hover:bg-accent"
+            }`}
+          >
+            <LayoutDashboard className="h-5 w-5" /> dashboard
+          </Link>
           <div
             className={`flex items-center gap-3 p-2 rounded-lg text-lg ${
-              isActive("/cart") ? "bg-accent font-medium" : "hover:bg-accent"
+              isActive("/dashboard") ? "bg-accent font-medium" : "hover:bg-accent"
             }`}
           >
             {/* <CartLink onClick={() => setIsMenuOpen(false)} /> */}
