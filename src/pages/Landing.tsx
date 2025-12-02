@@ -214,7 +214,7 @@ export default function Landing() {
           className="w-full h-auto rounded-3xl shadow-2xl shadow-indigo-500/40 border-4 border-indigo-200/50 dark:border-indigo-800/50 transition-all duration-300 hover:shadow-indigo-500/60"
         >
           {/* NOTE: Ensure 'howitworks.mp4' is accessible via the /videos/ path in your public directory */}
-          <source src="/howitworks.mp4" type="video/mp4" />
+          <source src="/myfirststartup.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
       </div>

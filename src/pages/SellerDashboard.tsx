@@ -130,30 +130,45 @@ export default function SellerDashboard(): JSX.Element {
     Bookings modal & handlers
   ------------------------- */
   const openBookingsModal = async (product: ProductRow) => {
-    setBookingsOpenFor(product);
-    setBookingsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("id, product_id, buyer_id, offered_price, message, status, created_at, buyer:profiles(id, full_name, avatar_url)")
-        .eq("product_id", product.id)
-        .order("created_at", { ascending: true });
+  setBookingsOpenFor(product);
+  setBookingsLoading(true);
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select(`
+        id,
+        product_id,
+        buyer_id,
+        offered_price,
+        message,
+        status,
+        created_at,
+        buyer:profiles!fk_bookings_buyer (
+          id,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq("product_id", product.id)
+      .order("created_at", { ascending: true });
 
-      if (error) throw error;
-      // normalize buyer profile
-      const normalized = (data || []).map((b: any) => ({
-        ...b,
-        buyer_profile: b.buyer ?? null,
-      })) as Booking[];
-      setBookingsList(normalized);
-    } catch (err) {
-      console.error("openBookingsModal", err);
-      toast.error("Failed to load bookings");
-      setBookingsList([]);
-    } finally {
-      setBookingsLoading(false);
-    }
-  };
+    if (error) throw error;
+
+    const normalized = (data || []).map((b: any) => ({
+      ...b,
+      buyer_profile: b.buyer ?? null,
+    })) as Booking[];
+
+    setBookingsList(normalized);
+  } catch (err) {
+    console.error("openBookingsModal", err);
+    toast.error("Failed to load bookings");
+    setBookingsList([]);
+  } finally {
+    setBookingsLoading(false);
+  }
+};
+
 
   const closeBookingsModal = () => {
     setBookingsOpenFor(null);
@@ -262,30 +277,37 @@ export default function SellerDashboard(): JSX.Element {
 
   // Finalize sale: call the RPC (preferred)
   const finalizeSaleRpc = async (bookingId: string) => {
-    setProcessingId(bookingId);
-    try {
-      const { data, error } = await supabase.rpc("finalize_sale_rpc", { p_booking_id: bookingId });
-      if (error) {
-        console.error("finalize_sale_rpc error", error);
-        toast.error(error.message || "Could not finalize sale");
-        return;
-      }
-      if (data?.status === "ok") {
-        toast.success("Product marked as sold");
-        await fetchData();
-        if (bookingsOpenFor) {
-          await openBookingsModal(bookingsOpenFor);
-        }
-      } else {
-        toast.error(data?.message || "Finalize failed");
-      }
-    } catch (err: any) {
-      console.error("finalizeSaleRpc catch", err);
-      toast.error("Finalize failed");
-    } finally {
-      setProcessingId(null);
+  setProcessingId(bookingId);
+  try {
+    const { data, error } = await supabase.rpc("finalize_sale_rpc", {
+      p_booking_id: bookingId,
+    });
+
+    if (error) {
+      console.error("finalize_sale_rpc error", error);
+      toast.error(error.message || "Could not finalize sale");
+      return;
     }
-  };
+
+    if (data?.status === "ok") {
+      toast.success("Product marked as sold");
+
+      // refresh products so status becomes "sold"
+      await fetchData();
+
+      // ✅ CLOSE the bookings modal if it was open
+      closeBookingsModal();
+    } else {
+      toast.error(data?.message || "Finalize failed");
+    }
+  } catch (err: any) {
+    console.error("finalizeSaleRpc catch", err);
+    toast.error("Finalize failed");
+  } finally {
+    setProcessingId(null);
+  }
+};
+
 
   /* -------------------------
     Orders (accepted bookings) 
