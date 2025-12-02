@@ -454,7 +454,7 @@ export default function SellerDashboard(): JSX.Element {
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="font-semibold truncate">{p.title}</div>
-                            <div className="text-xs text-slate-400 mt-1">₹{Number(p.price || 0).toLocaleString()} • {p.status}</div>
+                            <div className="text-xs text-slate-400 mt-1">${Number(p.price || 0).toLocaleString()} • {p.status}</div>
                           </div>
                           <div className="text-right text-sm">
                             <div className="text-xs text-slate-400">Pending</div>
@@ -515,7 +515,7 @@ export default function SellerDashboard(): JSX.Element {
                       <div className="text-xs text-slate-500">{o.buyer?.full_name ?? o.buyer_id} • {format(new Date(o.created_at), "PPP")}</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">₹{Number(o.offered_price || 0).toLocaleString()}</div>
+                      <div className="font-semibold">${Number(o.offered_price || 0).toLocaleString()}</div>
                       <div className="text-xs text-slate-400">{o.status}</div>
                     </div>
                   </div>
@@ -648,7 +648,7 @@ function AnimateBookingsModal({
                     </div>
                     <div className="text-sm text-slate-600 mt-1">{b.message ?? "No message"}</div>
                     <div className="text-xs text-slate-400 mt-2">
-                      Offer: ₹{Number(b.offered_price || 0).toLocaleString()} • {b.status}
+                      Offer: ${Number(b.offered_price || 0).toLocaleString()} • {b.status}
                     </div>
 
                     <div className="mt-3 flex items-center gap-2">

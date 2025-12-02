@@ -50,9 +50,9 @@ const ATTACHMENT_BUCKET = "chat-attachments";
 const formatCurrency = (value?: number) =>
     value == null
         ? "-"
-        : value.toLocaleString("en-IN", {
+        : value.toLocaleString("en-US", {
             style: "currency",
-            currency: "INR",
+            currency: "USD",
             maximumFractionDigits: 0,
         });
 

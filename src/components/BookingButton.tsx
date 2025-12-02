@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createBooking, getCurrentUserId } from "@/lib/bookings"; // keep using your helper
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client"; // 👈 NEW import
+import { supabase } from "@/integrations/supabase/client"; 
 
 type BookingButtonProps = {
   productId: string;

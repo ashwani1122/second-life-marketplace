@@ -163,7 +163,7 @@ export default function Landing() {
                     <div className="space-y-2">
                       <div className="h-2 w-8 bg-slate-100 dark:bg-slate-800 rounded" />
                       <div className="text-lg font-bold text-indigo-600">
-                        ₹8,500
+                        $8,500
                       </div>
                     </div>
                   </div>

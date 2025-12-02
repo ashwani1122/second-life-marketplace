@@ -118,7 +118,7 @@ export const ProductCard = ({
       {/* FOOTER: PRICE + VIEW/BOOKINGS */}
       <CardFooter className="p-4 pt-0 flex items-center justify-between gap-2">
         <p className="font-bold text-2xl text-primary">
-          ₹{price.toLocaleString()}
+          ${price.toLocaleString()}
         </p>
 
         <div className="flex items-center gap-2">

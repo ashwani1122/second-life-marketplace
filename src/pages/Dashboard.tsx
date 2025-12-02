@@ -597,7 +597,7 @@ export default function Dashboard() {
                         <p className="text-xs text-slate-500">{new Date(item.created_at).toLocaleString()}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold text-indigo-600">₹{Number(item.price || 0).toLocaleString()}</p>
+                        <p className="text-sm font-bold text-indigo-600">${Number(item.price || 0).toLocaleString()}</p>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-1 ${item.status === "sold" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30" : item.status === "active" ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"}`}>
                           {item.status ?? "—"}
                         </span>

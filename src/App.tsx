@@ -17,6 +17,7 @@ import ProductPageWithChat from "./pages/ProductPage";
 import ProductBookings from "./pages/ProductBooking";
 import SellerDashboard from "./pages/SellerDashboard";
 import NotificationsPage from "./pages/NotificationsPage";
+import BookingDetailPage from "./pages/BookingDetailsPage";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/dashboard" element={<SellerDashboard />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/bookings/:id" element={<BookingDetailPage />} />
           <Route path="/inbox" element={<InboxPage />} />
           <Route path="/product/:id/bookings" element={<ProductBookings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

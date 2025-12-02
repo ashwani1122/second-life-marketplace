@@ -1,13 +1,11 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client"; // 👈 NEW
+import { supabase } from "@/integrations/supabase/client";
 import { updateBookingStatus } from "@/lib/bookings"; // your helper
+import { SellerBookingsPanelProps } from "@/types/sellerBookingPanelProps";
 
-type SellerBookingsPanelProps = {
-  bookings: any[];
-  reload: () => void;
-};
+
 
 export default function SellerBookingsPanel({
   bookings,
@@ -76,7 +74,7 @@ export default function SellerBookingsPanel({
             </div>
             <div className="text-sm">
               {b.offered_price
-                ? `Offered: ₹${b.offered_price}`
+                ? `Offered: $${b.offered_price}`
                 : "No price offered"}
             </div>
           </div>
