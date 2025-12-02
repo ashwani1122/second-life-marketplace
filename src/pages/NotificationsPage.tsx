@@ -6,15 +6,12 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
-// safe JSON parser that handles double-encoded strings
 function safeParse(value: any): any {
   if (!value) return null;
   if (typeof value === "object") return value;
   if (typeof value !== "string") return value;
-
   try {
     const first = JSON.parse(value);
-    // sometimes the first parse returns a string that is JSON again
     if (typeof first === "string") {
       try {
         return JSON.parse(first);
@@ -141,22 +138,15 @@ export default function NotificationsPage(): JSX.Element {
     const productId = payload.product_id;
     const bookingId = payload.booking_id;
 
-    // Example navigation logic:
     if (bookingId) {
-      // if you have a booking details page
       navigate(`/bookings/${bookingId}`);
     } else if (productId) {
       navigate(`/product/${productId}`);
     }
-    // else: maybe just do nothing / later open a generic page
   };
 
   const renderTitle = (n: NotificationRow): string => {
     if (n.title) return n.title;
-
-    const payload = n.payload || {};
-    const productTitle = payload.product_title || payload.title;
-
     switch (n.type) {
       case "booking_request":
         return "New booking request";
@@ -176,14 +166,13 @@ export default function NotificationsPage(): JSX.Element {
     const payload = n.payload || {};
     const message = payload.message;
     const offered = payload.offered_price;
-    const productId = payload.product_id;
 
     if (n.type === "booking_request") {
       return (
         message ||
         `You received a new booking request${
           offered ? ` (offer: ₹${offered})` : ""
-        }${productId ? ` for product ${productId}` : ""}.`
+        }.`
       );
     }
 

@@ -19,7 +19,9 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
+
 import { ProfileModal } from "./ProfileModal";
+import { useNotificationsUnreadCount } from "@/hooks/useNotificationUnreadCount";
 
 export const Navbar = () => {
   const location = useLocation();
@@ -37,6 +39,8 @@ export const Navbar = () => {
   const [pendingNavToSell, setPendingNavToSell] = useState(false);
 
   const unreadCount = useUnreadCount();
+  const notificationsUnread = useNotificationsUnreadCount(); // 👈 NEW
+
 
   // fetch user + cached profile for navbar (keeps UI snappy)
   const fetchUserAndProfile = useCallback(async () => {
@@ -343,6 +347,26 @@ export const Navbar = () => {
                           <User className="h-4 w-4" /> Profile
                         </Button>
                       </Link>
+
+                      {/* Notifications bell */}
+                      <button
+                        type="button"
+                        onClick={() => navigate("/notifications")}
+                        className="relative inline-flex items-center justify-center rounded-full p-2 hover:bg-accent transition-smooth"
+                        aria-label="Notifications"
+                      >
+                        <Bell className="h-5 w-5" />
+                        {notificationsUnread > 0 && (
+                          <span
+                            className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold rounded-full bg-red-600 text-white ring-2 ring-background"
+                            title={`${notificationsUnread} unread notification(s)`}
+                          >
+                            {notificationsUnread > 9 ? "9+" : notificationsUnread}
+                          </span>
+                        )}
+                      </button>
+
+                      {/* Inbox button (existing) */}
                       <Link to="/inbox" className="relative">
                         <Button
                           variant={isActive("/inbox") ? "default" : "outline"}
@@ -376,119 +400,138 @@ export const Navbar = () => {
       </div>
 
       {/* Mobile Accordion Menu */}
-      <div
-        className={`fixed top-16 left-0 w-full bg-background/95 backdrop-blur border-b border-border shadow-lg z-40 transition-all duration-300 ease-in-out ${
-          isMenuOpen
-            ? "translate-y-0 opacity-100"
-            : "-translate-y-full opacity-0 pointer-events-none"
-        } md:hidden`}
-      >
-        <div className="flex flex-col p-4 space-y-2">
+      {/* Mobile Accordion Menu */}
+<div
+  className={`
+    fixed top-16 left-0 w-full bg-background/95 backdrop-blur border-b border-border shadow-lg z-40
+    transform transition-all duration-300 ease-in-out
+    ${isMenuOpen ? "translate-y-0 opacity-100" : "-translate-y-4 opacity-0 pointer-events-none"}
+    md:hidden
+  `}
+>
+  <div className="flex flex-col p-4 space-y-2 max-h-[calc(100vh-4rem)] overflow-y-auto">
+    {/* Home */}
+    <Link
+      onClick={() => setIsMenuOpen(false)}
+      to="/"
+      className={`flex items-center gap-3 p-2 rounded-lg text-lg ${
+        isActive("/")
+          ? "bg-accent text-primary font-medium"
+          : "text-foreground hover:bg-accent"
+      }`}
+    >
+      <Home className="h-5 w-5" /> Home
+    </Link>
+
+    {/* Browse */}
+    <Link
+      onClick={() => setIsMenuOpen(false)}
+      to="/browse"
+      className={`flex items-center gap-3 p-2 rounded-lg text-lg ${
+        isActive("/browse")
+          ? "bg-accent text-primary font-medium"
+          : "text-foreground hover:bg-accent"
+      }`}
+    >
+      <ShoppingBag className="h-5 w-5" /> Browse
+    </Link>
+
+    {/* Sell (uses handler) */}
+    <button
+      onClick={() => handleSellClick({ fromMobile: true })}
+      className={`flex items-center gap-3 p-2 rounded-lg text-lg ${
+        isActive("/sell")
+          ? "bg-accent text-primary font-medium"
+          : "text-foreground hover:bg-accent"
+      }`}
+    >
+      <Plus className="h-5 w-5" /> Sell
+    </button>
+
+    {/* Dashboard */}
+    <Link
+      onClick={() => setIsMenuOpen(false)}
+      to="/dashboard"
+      className={`flex items-center gap-3 p-2 rounded-lg text-lg ${
+        isActive("/dashboard")
+          ? "bg-accent text-primary font-medium"
+          : "text-foreground hover:bg-accent"
+      }`}
+    >
+      <LayoutDashboard className="h-5 w-5" /> Dashboard
+    </Link>
+
+    <div className="pt-2 border-t border-border mt-2 space-y-2">
+      {user ? (
+        <>
+          {/* Profile */}
           <Link
             onClick={() => setIsMenuOpen(false)}
-            to="/"
+            to="/profile"
             className={`flex items-center gap-3 p-2 rounded-lg text-lg ${
-              isActive("/")
+              isActive("/profile")
                 ? "bg-accent text-primary font-medium"
                 : "text-foreground hover:bg-accent"
             }`}
           >
-            <Home className="h-5 w-5" /> Home
+            <User className="h-5 w-5" /> Profile
           </Link>
 
-          <Link
-            onClick={() => setIsMenuOpen(false)}
-            to="/browse"
-            className={`flex items-center gap-3 p-2 rounded-lg text-lg ${
-              isActive("/browse")
-                ? "bg-accent text-primary font-medium"
-                : "text-foreground hover:bg-accent"
-            }`}
-          >
-            <ShoppingBag className="h-5 w-5" /> Browse
-          </Link>
-
-          {/* Mobile Sell uses same handler */}
+          {/* Notifications with badge */}
           <button
-            onClick={() => handleSellClick({ fromMobile: true })}
+            onClick={() => {
+              setIsMenuOpen(false);
+              navigate("/notifications");
+            }}
             className={`flex items-center gap-3 p-2 rounded-lg text-lg ${
-              isActive("/sell")
+              isActive("/notifications")
                 ? "bg-accent text-primary font-medium"
                 : "text-foreground hover:bg-accent"
             }`}
           >
-            <Plus className="h-5 w-5" /> Sell
-          </button>
-          
-          <Link
-            to="/dashboard"
-            className={`flex items-center gap-3 p-2 rounded-lg text-lg ${
-              isActive("/dashboard")
-                ? "bg-accent text-primary font-medium"
-                : "text-foreground hover:bg-accent"
-            }`}
-          >
-            <LayoutDashboard className="h-5 w-5" /> dashboard
-          </Link>
-          <div
-            className={`flex items-center gap-3 p-2 rounded-lg text-lg ${
-              isActive("/dashboard") ? "bg-accent font-medium" : "hover:bg-accent"
-            }`}
-          >
-            {/* <CartLink onClick={() => setIsMenuOpen(false)} /> */}
-          </div>
-
-          <div className="pt-2 border-t border-border mt-2 space-y-2">
-            {user ? (
-              <>
-                <Link
-                  onClick={() => setIsMenuOpen(false)}
-                  to="/profile"
-                  className={`flex items-center gap-3 p-2 rounded-lg text-lg ${
-                    isActive("/profile")
-                      ? "bg-accent text-primary font-medium"
-                      : "text-foreground hover:bg-accent"
-                  }`}
-                >
-                  <User className="h-5 w-5" /> Profile
-                </Link>
-                <Link to="/notifications" className="relative">
-                  <Button
-                    variant={isActive("/notifications") ? "default" : "outline"}
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Bell className="h-5 w-5" /> Notifications
-                      
-                  </Button>
-                </Link>
-                <Link
-                  onClick={() => setIsMenuOpen(false)}
-                  to="/inbox"
-                  className={`flex items-center justify-between gap-3 p-2 rounded-lg text-lg ${
-                    isActive("/inbox")
-                      ? "bg-accent text-primary font-medium"
-                      : "text-foreground hover:bg-accent"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-5 w-5" /> Inbox
-                  </div>
-                  {unreadCount > 0 && (
-                    <span className="min-w-[20px] h-5 px-1 flex items-center justify-center text-xs font-bold rounded-full bg-red-600 text-white">
-                      {unreadCount}
-                    </span>
-                  )}
-                </Link>
-              </>
-            ) : (
-              <Link onClick={() => setIsMenuOpen(false)} to="/auth">
-                <Button className="w-full gradient-primary">Sign In</Button>
-              </Link>
+            <Bell className="h-5 w-5" />
+            <span>Notifications</span>
+            {notificationsUnread > 0 && (
+              <span className="ml-auto min-w-[20px] h-5 px-1 flex items-center justify-center text-xs font-bold rounded-full bg-red-600 text-white">
+                {notificationsUnread > 9 ? "9+" : notificationsUnread}
+              </span>
             )}
-          </div>
-        </div>
-      </div>
+          </button>
+
+          {/* Inbox */}
+          <Link
+            onClick={() => setIsMenuOpen(false)}
+            to="/inbox"
+            className={`flex items-center justify-between gap-3 p-2 rounded-lg text-lg ${
+              isActive("/inbox")
+                ? "bg-accent text-primary font-medium"
+                : "text-foreground hover:bg-accent"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Mail className="h-5 w-5" /> Inbox
+            </div>
+            {unreadCount > 0 && (
+              <span className="min-w-[20px] h-5 px-1 flex items-center justify-center text-xs font-bold rounded-full bg-red-600 text-white">
+                {unreadCount}
+              </span>
+            )}
+          </Link>
+        </>
+      ) : (
+        <Link
+          onClick={() => {
+            setIsMenuOpen(false);
+          }}
+          to="/auth"
+        >
+          <Button className="w-full gradient-primary">Sign In</Button>
+        </Link>
+      )}
+    </div>
+  </div>
+</div>
+
 
       {/* Profile Modal */}
       {user && (
