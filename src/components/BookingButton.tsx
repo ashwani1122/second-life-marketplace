@@ -111,7 +111,7 @@ export function BookingButton({ productId, sellerId }: BookingButtonProps) {
             className="absolute inset-0 bg-black/40"
             onClick={() => setOpen(false)}
           />
-          <div className="relative bg-white dark:bg-slate-900 rounded-xl p-6 w-full max-w-md z-20">
+          <div className="relative bg-white text-black dark:bg-slate-900 dark:text-white rounded-xl p-6 w-full max-w-md z-20">
             <h3 className="text-lg font-bold mb-3">Request Booking</h3>
 
             <input
