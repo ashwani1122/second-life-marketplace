@@ -855,6 +855,10 @@ export default function ProductPageWithChat(): JSX.Element {
                                     ? "This is Your Listing"
                                     : "Chat with Seller"}
                             </motion.button>
+
+                            {product.seller_id === currentUserId && <Link to ={`/product/${product.id}/bookings`} className="w-full h-12 flex items-center justify-center gap-3 mt-3 text-base font-semibold border-2 rounded-xl transition-all duration-200">
+                                See all bookings for this product
+                            </Link>}
                         </div>
                        
                         {/* Seller Profile Card */}
