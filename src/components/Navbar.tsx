@@ -13,6 +13,7 @@ import {
   X,
   LayoutDashboard,
   Search,
+  Bell,
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -293,7 +294,16 @@ export const Navbar = () => {
                 >
                   <Plus className="h-4 w-4" /> Sell
                 </button>
-
+                  <Link
+                  to="/notifications"
+                  className={`flex items-center gap-2 transition-smooth ${
+                    isActive("/notifications")
+                      ? "text-primary"
+                      : "text-foreground hover:text-primary"
+                  }`}
+                >
+                  <LayoutDashboard className="h-4 w-4" /> Notification
+                </Link>
                 {/* <CartLink /> */}
               </div>
 
@@ -441,6 +451,16 @@ export const Navbar = () => {
                   }`}
                 >
                   <User className="h-5 w-5" /> Profile
+                </Link>
+                <Link to="/notifications" className="relative">
+                  <Button
+                    variant={isActive("/notifications") ? "default" : "outline"}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Bell className="h-5 w-5" /> Notifications
+                      
+                  </Button>
                 </Link>
                 <Link
                   onClick={() => setIsMenuOpen(false)}
