@@ -35,9 +35,9 @@ export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
-
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [pendingNavToSell, setPendingNavToSell] = useState(false);
-
+  
   const unreadCount = useUnreadCount();
   const notificationsUnread = useNotificationsUnreadCount(); // 👈 NEW
 
@@ -48,8 +48,9 @@ export const Navbar = () => {
       const { data: authData, error: authErr } = await supabase.auth.getUser();
       if (authErr) throw authErr;
       const authUser = authData.user;
-      setUser(authUser);
 
+      setUser(authUser);
+      setCurrentUserId(authUser?.id ?? null);
       if (!authUser) {
         setPhone("");
         setAddress("");
@@ -298,16 +299,7 @@ export const Navbar = () => {
                 >
                   <Plus className="h-4 w-4" /> Sell
                 </button>
-                  <Link
-                  to="/notifications"
-                  className={`flex items-center gap-2 transition-smooth ${
-                    isActive("/notifications")
-                      ? "text-primary"
-                      : "text-foreground hover:text-primary"
-                  }`}
-                >
-                  <LayoutDashboard className="h-4 w-4" /> Notification
-                </Link>
+                 
                 {/* <CartLink /> */}
               </div>
 
@@ -375,7 +367,7 @@ export const Navbar = () => {
                         >
                           <Mail className="h-4 w-4" /> Inbox
                         </Button>
-                        {unreadCount > 0 && (
+                        { currentUserId && unreadCount > 0 && (
                           <span
                             className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 min-w-[20px] h-5 px-1 flex items-center justify-center text-xs font-bold rounded-full bg-red-600 text-white ring-2 ring-background"
                             title={`${unreadCount} unread message(s)`}

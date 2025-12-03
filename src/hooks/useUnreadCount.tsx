@@ -5,18 +5,26 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 export const useUnreadCount = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentId , setCurrentId] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   // 1. Fetch user/session on mount & listen for auth changes
   useEffect(() => {
     const fetchUser = async () => {
       const { data, error } = await supabase.auth.getSession();
+      const { data: authData, error: authErr } = await supabase.auth.getUser();
+
+      if (authErr) throw authErr;
+
+      const authUser = authData.user;
+      setCurrentId(authUser.id ?? null )
       if (error) {
         console.error("getSession error", error);
         setCurrentUserId(null);
         return;
       }
       setCurrentUserId(data.session?.user?.id || null);
+
     };
 
     fetchUser();
