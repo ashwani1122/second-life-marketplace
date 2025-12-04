@@ -8,7 +8,6 @@ import { Button } from "./ui/button";
 const ChatDrawerInner: React.FC<ChatDrawerProps> = ({
   chatOpen,
   sellerName,
-  buyerName,
   sellerAvatarUrl,
   productTitle,
   messages,

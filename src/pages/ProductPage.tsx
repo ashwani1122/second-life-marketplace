@@ -330,15 +330,7 @@ export default function ProductPageWithChat(): JSX.Element {
 
             openExistingChat();
         }
-    }, [
-        loading,
-        currentUserId,
-        location.state,
-        loadMessages,
-        subscribeToMessages,
-        subscribeToTyping,
-        markMessagesAsRead,
-    ]);
+    });
     
     // openChat implementation (remains the same)
     const openChat = useCallback(async () => {

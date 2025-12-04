@@ -28,16 +28,16 @@ const HeroSection = () => {
                     </div>
 
                     {/* 2. FIX: Main Headline text color added for light mode (text-slate-900) */}
-                    <h1 className="max-w-4xl text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tighter text-slate-900 dark:text-white">
+                    <h1 className="max-w-4xl text-5xl sm:text-6xl  font-extrabold leading-tight tracking-tighter text-slate-900 dark:text-white">
                         <span className='w-fit bg-gradient-to-r from-indigo-600 to-blue-500 dark:from-blue-300 dark:to-indigo-400 bg-clip-text text-transparent'> 
                             Great Finds. Better Value.
                         </span>
-                        <br className="hidden sm:block"/>
+                        <br />
                         The Smart Way to ReMarket.
                     </h1>
                     
                     {/* 3. FIX: Sub-text color adjusted for light mode (text-slate-600) */}
-                    <p className="mt-6 mx-auto md:mx-0 max-w-xl text-lg sm:text-xl font-light tracking-wide text-slate-600 dark:text-slate-300">
+                    <p className="mt-6 mx-auto md:mx-0 max-w-xl text-lg sm:text-md font-light tracking-wide text-slate-600 dark:text-slate-300">
                         Nexo connects you with verified local users to buy and sell premium pre-loved items securely. No spam, just exceptional deals and guaranteed protection.
                     </p>
                     

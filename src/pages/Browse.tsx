@@ -1,42 +1,12 @@
 // src/pages/Browse.tsx
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/ProductCard";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Search, 
-  SlidersHorizontal, 
-  Sun, 
-  Moon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-
-// --- THEME HOOK ---
-function useTheme() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("theme-preference");
-    if (stored === "dark" || stored === "light") {
-      setTheme(stored);
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setTheme("dark");
-    }
-  }, []);
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(theme);
-    localStorage.setItem("theme-preference", theme);
-  }, [theme]);
-
-  const toggleTheme = () => setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  return { theme, toggleTheme };
-}
-
 // --- MOVING BORDER COMPONENT ---
 const MovingBorderInput = ({ value, onChange, placeholder }: any) => {
   return (
@@ -99,7 +69,6 @@ const ProductSkeleton = () => (
 );
 
 const Browse = () => {
-  const { theme, toggleTheme } = useTheme();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -192,15 +161,6 @@ const Browse = () => {
               onChange={(e: any) => setSearchQuery(e.target.value)}
               placeholder="Search title, description..."
             />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={toggleTheme} className="rounded-full">
-              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-            </Button>
-            <Button variant="outline" size="sm" className="hidden sm:inline-flex items-center gap-2 rounded-full border-slate-200 dark:border-slate-700">
-              <SlidersHorizontal size={14} /> Filters
-            </Button>
           </div>
         </div>
       </div>

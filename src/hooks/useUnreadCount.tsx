@@ -52,7 +52,7 @@ export const useUnreadCount = () => {
         .from("messages")
         .select("*", { count: "exact", head: true })
         .eq("read", false)
-        .neq("sender_id", currentUserId); // unread = not sent by me + read=false
+        .neq("sender_id", currentId); // unread = not sent by me + read=false
 
       if (error) {
         console.error("Error fetching initial unread count:", error);

@@ -1,6 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+h1 {
+  font-family: "Poppins" sans-serif;
+}
+
+span, p, button, input ,div{
+  font-family: 'Roboto', sans-serif;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+   
+
 
 /* Your custom CSS follows here */
 .animate-gradient-x {

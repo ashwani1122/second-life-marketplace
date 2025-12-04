@@ -147,7 +147,7 @@ export default function Landing() {
                     {/* Image Upload Area */}
                     <div className="w-full aspect-square bg-slate-100 dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 gap-2 overflow-hidden">
                       <img
-                        src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=300&q=80"
+                        src="https://images.unsplash.com/photo-1507764923504-cd90bf7da772?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDIzfHx8ZW58MHx8fHx8"
                         className="w-full h-full object-cover rounded-lg opacity-80"
                         alt="Shoe"
                       />
@@ -157,7 +157,7 @@ export default function Landing() {
                     <div className="space-y-2">
                       <div className="h-2 w-12 bg-indigo-100 dark:bg-indigo-900/30 rounded" />
                       <div className="text-sm font-semibold">
-                        Nike Air Max 90
+                        Mac book pro
                       </div>
                     </div>
                     <div className="space-y-2">
