@@ -91,7 +91,6 @@ export default function InboxPage(): JSX.Element {
         setChats([]);
         return;
       }
-        alert(JSON.stringify(rawChats));
       const processedChats: ChatListItem[] = (rawChats || [])
         .map((chat: any) => {
           const productTitle = chat.products?.title || "Unknown product";
@@ -201,7 +200,6 @@ export default function InboxPage(): JSX.Element {
               to={`/product/${chat.product_id}`}
               state={{ openChatId: chat.id }}
               onClick={(e) => {
-                alert(chat.productStatus);
                 if (chat.productStatus !== "active") {
                 e.preventDefault();
                 toast.error("This product is no longer available.");
