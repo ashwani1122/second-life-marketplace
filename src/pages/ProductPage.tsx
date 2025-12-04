@@ -82,7 +82,7 @@ export default function ProductPageWithChat(): JSX.Element {
     const messagesRef = useRef<HTMLDivElement | null>(null);
     const messagesChannelRef = useRef<RealtimeChannel | null>(null);
     const typingChannelRef = useRef<RealtimeChannel | null>(null);
-
+    const seenMessagesRef = useRef<Set<string>>(new Set());
     // local typing debounce (client-only)
     const typingActiveRef = useRef(false);
     const typingTimerRef = useRef<number | null>(null);
@@ -182,63 +182,86 @@ export default function ProductPageWithChat(): JSX.Element {
     
     // loadMessages implementation (remains the same)
     const loadMessages = useCallback(async (cId: string) => {
-        try {
-            const { data } = await supabase
-                .from("messages")
-                .select(
-                    "id, chat_id, sender_id, content, attachment_url, read, created_at"
-                )
-                .eq("chat_id", cId)
-                .order("created_at", { ascending: true })
-                .limit(500);
-            setMessages(data || []);
-            setTimeout(() => {
-                if (messagesRef.current)
-                    messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-            }, 60);
-        } catch (err) {
-            console.error("loadMessages", err);
+    try {
+        const { data } = await supabase
+            .from("messages")
+            .select("id, chat_id, sender_id, content, attachment_url, read, created_at")
+            .eq("chat_id", cId)
+            .order("created_at", { ascending: true })
+            .limit(500);
+
+        const arr = data || [];
+        // populate seen set
+        const s = new Set<string>();
+        for (const m of arr) {
+            if (m?.id) s.add(String(m.id));
         }
-    }, []);
+        seenMessagesRef.current = s;
+
+        setMessages(arr);
+        setTimeout(() => {
+            if (messagesRef.current)
+                messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+        }, 60);
+    } catch (err) {
+        console.error("loadMessages", err);
+    }
+}, []);
+
+
     
     // subscribeToMessages implementation (remains the same)
     const subscribeToMessages = useCallback((cId: string) => {
-        // cleanup previous
-        try {
-            if (messagesChannelRef.current) {
-                messagesChannelRef.current.unsubscribe();
-                supabase.removeChannel(messagesChannelRef.current);
-                messagesChannelRef.current = null;
-            }
-        } catch (e) {
-            console.warn("cleanup messages channel failed", e);
+    // cleanup previous
+    try {
+        if (messagesChannelRef.current) {
+            messagesChannelRef.current.unsubscribe();
+            supabase.removeChannel(messagesChannelRef.current);
+            messagesChannelRef.current = null;
         }
+    } catch (e) {
+        console.warn("cleanup messages channel failed", e);
+    }
 
-        const channel = supabase
-            .channel(`messages-chat-${cId}`)
-            .on(
-                "postgres_changes",
-                {
-                    event: "INSERT",
-                    schema: "public",
-                    table: "messages",
-                    filter: `chat_id=eq.${cId}`,
-                },
-                (payload: any) => {
-                    setMessages((m) => {
-                        if (m.some((x) => x.id === payload.new.id)) return m;
-                        return [...m, payload.new];
-                    });
-                    setTimeout(() => {
-                        if (messagesRef.current)
-                            messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-                    }, 60);
+    const channel = supabase
+        .channel(`messages-chat-${cId}`)
+        .on(
+            "postgres_changes",
+            {
+                event: "INSERT",
+                schema: "public",
+                table: "messages",
+                filter: `chat_id=eq.${cId}`,
+            },
+            (payload: any) => {
+                const newMsg = payload.new;
+                const idStr = newMsg?.id ? String(newMsg.id) : null;
+                if (!idStr) return;
+
+                // If we already saw this id (either from loadMessages or our own insert),
+                // skip to avoid duplicates
+                if (seenMessagesRef.current.has(idStr)) {
+                    return;
                 }
-            )
-            .subscribe();
 
-        messagesChannelRef.current = channel;
-    }, []);
+                // mark as seen and append
+                seenMessagesRef.current.add(idStr);
+                setMessages((m) => {
+                    // extra safety: final check to prevent duplicates
+                    if (m.some((x) => String(x.id) === idStr)) return m;
+                    return [...m, newMsg];
+                });
+
+                setTimeout(() => {
+                    if (messagesRef.current)
+                        messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+                }, 60);
+            }
+        )
+        .subscribe();
+
+    messagesChannelRef.current = channel;
+}, []);
 
     // subscribeToTyping implementation (remains the same)
     const subscribeToTyping = useCallback((cId: string) => {
@@ -392,55 +415,66 @@ export default function ProductPageWithChat(): JSX.Element {
 
     // sendMessage implementation (remains the same)
     const sendMessage = useCallback(
-        async (content?: string, attachmentUrl?: string | null) => {
-            if (!chatId) return;
-            if (!currentUserId) {
-                toast.error("Sign in to send messages.");
-                return;
-            }
-            if (!content && !attachmentUrl) return;
+    async (content?: string, attachmentUrl?: string | null) => {
+        if (!chatId) return;
+        if (!currentUserId) {
+            toast.error("Sign in to send messages.");
+            return;
+        }
+        if (!content && !attachmentUrl) return;
 
-            setSending(true);
+        setSending(true);
+        try {
+            const payload: any = {
+                chat_id: chatId,
+                sender_id: currentUserId,
+                content: content ?? null,
+                attachment_url: attachmentUrl ?? null,
+            };
+            const { data, error } = await supabase
+                .from("messages")
+                .insert([payload])
+                .select()
+                .single();
+            if (error) throw error;
+
+            // NEW: add to seen set BEFORE appending to prevent realtime duplicate on race
+            if (data?.id) seenMessagesRef.current.add(String(data.id));
+
+            // optimistic append (sender sees message immediately)
+            setMessages((m) => {
+                // safety: if somehow exists already, return existing
+                if (m.some((x) => String(x.id) === String(data.id))) return m;
+                return [...m, data];
+            });
+
+            setMessageText("");
+            setTimeout(() => {
+                if (messagesRef.current)
+                    messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+            }, 60);
+        } catch (err: any) {
+            console.error("sendMessage", err);
+            toast.error(err?.message || "Failed to send message");
+        } finally {
+            setSending(false);
+            // clear typing presence when sending
             try {
-                const payload: any = {
-                    chat_id: chatId,
-                    sender_id: currentUserId,
-                    content: content ?? null,
-                    attachment_url: attachmentUrl ?? null,
-                };
-                const { data, error } = await supabase
-                    .from("messages")
-                    .insert([payload])
-                    .select()
-                    .single();
-                if (error) throw error;
-                setMessages((m) => [...m, data]);
-                setMessageText("");
-                setTimeout(() => {
-                    if (messagesRef.current)
-                        messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-                }, 60);
-            } catch (err: any) {
-                console.error("sendMessage", err);
-                toast.error(err?.message || "Failed to send message");
-            } finally {
-                setSending(false);
-                // clear typing presence when sending
-                try {
-                    await supabase
-                        .from("chat_typing")
-                        .delete()
-                        .match({ chat_id: chatId, user_id: currentUserId });
-                } catch {}
-                typingActiveRef.current = false;
-                if (typingTimerRef.current) {
-                    window.clearTimeout(typingTimerRef.current);
-                    typingTimerRef.current = null;
-                }
+                await supabase
+                    .from("chat_typing")
+                    .delete()
+                    .match({ chat_id: chatId, user_id: currentUserId });
+            } catch {}
+            typingActiveRef.current = false;
+            if (typingTimerRef.current) {
+                window.clearTimeout(typingTimerRef.current);
+                typingTimerRef.current = null;
             }
-        },
-        [chatId, currentUserId]
-    );
+        }
+    },
+    [chatId, currentUserId]
+);
+
 
     // handleAttachFile implementation (remains the same)
     const handleAttachFile = useCallback(
@@ -539,42 +573,39 @@ export default function ProductPageWithChat(): JSX.Element {
 
     // closeChat implementation (remains the same)
     const closeChat = useCallback(() => {
-        // 1. Cleanup Supabase Channels FIRST
+  // 1. Cleanup Supabase Channels FIRST
+  try {
+    if (messagesChannelRef.current) {
+      messagesChannelRef.current.unsubscribe();
+      supabase.removeChannel(messagesChannelRef.current);
+      messagesChannelRef.current = null;
+    }
+    if (typingChannelRef.current) {
+      typingChannelRef.current.unsubscribe();
+      supabase.removeChannel(typingChannelRef.current);
+      typingChannelRef.current = null;
+    }
+  } catch (e) {
+    console.warn("cleanup channels error", e);
+  }
 
-        const cleanupChannels = () => {
-            try {
-                if (messagesChannelRef.current) {
-                    // Unsubscribe and remove the messages channel
-                    messagesChannelRef.current.unsubscribe();
-                    supabase.removeChannel(messagesChannelRef.current);
-                    messagesChannelRef.current = null;
-                }
-                if (typingChannelRef.current) {
-                    // Unsubscribe and remove the typing channel
-                    typingChannelRef.current.unsubscribe();
-                    supabase.removeChannel(typingChannelRef.current);
-                    typingChannelRef.current = null;
-                }
-            } catch (e) {
-                console.warn("cleanup channels error", e);
-            }
-        };
+  // 2. Clear seen message ids so next chat starts fresh
+  seenMessagesRef.current.clear();
 
-        cleanupChannels();
+  // 3. Clear typing timer if active
+  typingActiveRef.current = false;
+  if (typingTimerRef.current) {
+    window.clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = null;
+  }
 
-        // 2. Reset All State Variables AFTER Cleanup
-        setChatOpen(false); // This is the final step that closes the UI
-        setMessages([]);
-        setChatId(null);
-        setTypingUsers({}); // Make sure to clear any lingering typing users
+  // 4. Reset UI state
+  setChatOpen(false);
+  setMessages([]);
+  setChatId(null);
+  setTypingUsers({});
+}, []);
 
-        // 3. Clear local typing state
-        typingActiveRef.current = false;
-        if (typingTimerRef.current) {
-            window.clearTimeout(typingTimerRef.current);
-            typingTimerRef.current = null;
-        }
-    }, []);
 
     // when chat open and chatId changes, mark read and ensure typing subscription live (remains the same)
     useEffect(() => {
