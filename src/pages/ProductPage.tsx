@@ -167,18 +167,6 @@ export default function ProductPageWithChat(): JSX.Element {
     const next = () =>
         images.length > 0 && setIndex((i) => (i + 1) % images.length);
 
-    const handleAdd = () => {
-        if (!product) return;
-        addToCart({
-            id: product.id,
-            title: product.title,
-            price: product.price ?? 0,
-            quantity: 1,
-        });
-        toast.success("Added to cart", {
-            description: `${product.title} is now in your cart.`,
-        });
-    };
     
     // loadMessages implementation (remains the same)
     const loadMessages = useCallback(async (cId: string) => {
@@ -353,7 +341,7 @@ export default function ProductPageWithChat(): JSX.Element {
 
             openExistingChat();
         }
-    });
+    }, [ loading, currentUserId,  location.state, loadMessages, subscribeToMessages, subscribeToTyping, markMessagesAsRead ]);
     
     // openChat implementation (remains the same)
     const openChat = useCallback(async () => {
