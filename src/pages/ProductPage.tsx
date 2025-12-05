@@ -55,7 +55,7 @@ export default function ProductPageWithChat(): JSX.Element {
   // chat state
   const [chatOpen, setChatOpen] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<string[]>([]);
   const [messageText, setMessageText] = useState("");
   const [sending, setSending] = useState(false);
   const [attachmentUploading, setAttachmentUploading] = useState(false);
@@ -104,7 +104,7 @@ export default function ProductPageWithChat(): JSX.Element {
         );
         setIndex(0);
 
-        const sellerId = (prodData as any)?.seller_id;
+        const sellerId = (prodData)?.seller_id;
         if (sellerId) {
           try {
             const { data: profileRow, error: profileErr } = await supabase
@@ -112,7 +112,7 @@ export default function ProductPageWithChat(): JSX.Element {
               .select("id, full_name, phone, avatar_url, location")
               .eq("id", sellerId)
               .single();
-            if (!profileErr) setSellerProfile(profileRow ?? null);
+            if (!profileErr) setSellerProfile(profileRow);
             else setSellerProfile(null);
           } catch (err) {
             console.error("seller profile error", err);
