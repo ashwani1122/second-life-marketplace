@@ -9,6 +9,8 @@ const ChatDrawerInner: React.FC<ChatDrawerProps> = ({
   chatOpen,
   sellerName,
   sellerAvatarUrl,
+  partnerName,
+  partnerAvatarUrl,
   productTitle,
   messages,
   messagesRef,
@@ -34,7 +36,8 @@ const ChatDrawerInner: React.FC<ChatDrawerProps> = ({
 
   const isTyping =
     Object.keys(typingUsers).filter((uid) => uid !== currentUserId).length > 0;
-
+    const displayName = partnerName ?? sellerName;
+    const displayAvatar = partnerAvatarUrl ?? sellerAvatarUrl;
   return (
     <AnimatePresence>
       <motion.aside
@@ -49,26 +52,24 @@ const ChatDrawerInner: React.FC<ChatDrawerProps> = ({
         {/* Header */}
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3 shadow-md dark:shadow-none bg-white dark:bg-slate-900">
           {/* Seller Avatar */}
-          <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-            {sellerAvatarUrl ? (
-              <img
-                src={sellerAvatarUrl}
-                alt={sellerName ?? "Seller"}
-                className="w-full h-full object-cover rounded-full"
-              />
-            ) : (
-              <User size={20} />
-            )}
-          </div>
+           <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+          {displayAvatar ? (
+            <img src={displayAvatar} alt={displayName ?? "Partner"} className="w-full h-full object-cover rounded-full" />
+          ) : (
+            <User size={20} />
+          )}
+            </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="font-bold truncate text-lg text-slate-900 dark:text-white">
-              Chat with {sellerName ?? "Seller"}
+         
+
+            <div className="flex-1 min-w-0">
+              <div className="font-bold truncate text-lg text-slate-900 dark:text-white">
+                Chat with {displayName ?? "Seller"}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                {productTitle}
+              </div>
             </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              {productTitle}
-            </div>
-          </div>
           <button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300"

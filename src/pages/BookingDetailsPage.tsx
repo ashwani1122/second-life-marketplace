@@ -56,76 +56,103 @@ export default function BookingDetailPage(): JSX.Element {
   }, []);
 
   // fetch booking
-  useEffect(() => {
-    if (!bookingId) {
-      setLoading(false);
-      return;
-    }
+  // inside your useEffect that fetches the booking
+useEffect(() => {
+  if (!bookingId) {
+    setLoading(false);
+    return;
+  }
 
-    let mounted = true;
+  let mounted = true;
 
-    (async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from("bookings")
-          .select(
-            `
+  (async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select(`
+          id,
+          product_id,
+          buyer_id,
+          seller_id,
+          offered_price,
+          message,
+          preferred_date,
+          expires_at,
+          status,
+          created_at,
+          products:products(
             id,
-            product_id,
-            buyer_id,
-            seller_id,
-            offered_price,
-            message,
-            preferred_date,
-            expires_at,
-            status,
-            created_at,
-            products:products (
-              id,
-              title,
-              price,
-              status
-            ),
-            buyer:profiles!buyer_id (
-              id,
-              full_name,
-              avatar_url
-            ),
-            seller:profiles!seller_id (
-              id,
-              full_name,
-              avatar_url
-            )
-          `
+            title,
+            price,
+            status
+          ),
+          buyer:profiles!buyer_id (
+            id,
+            full_name,
+            avatar_url
+          ),
+          seller:profiles!seller_id (
+            id,
+            full_name,
+            avatar_url
           )
-          .eq("id", bookingId)
-          .maybeSingle();
+        `)
+        .eq("id", bookingId)
+        .maybeSingle();
 
-        if (!mounted) return;
+      if (!mounted) return;
 
-        if (error) {
-          console.error("fetch booking error", error);
-          toast.error("Failed to load booking.");
-          setBooking(null);
-        } else if (!data) {
-          setBooking(null);
-        } else {
-          setBooking(data as BookingRow);
-        }
-      } catch (err) {
-        console.error("fetch booking catch", err);
+      if (error) {
+        console.error("fetch booking error", error);
         toast.error("Failed to load booking.");
         setBooking(null);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
+      } else if (!data) {
+        setBooking(null);
+      } else {
+        // If the join didn't yield a product row but we have product_id, try a fallback fetch
+        if (!data.products && data.product_id) {
+          try {
+            const { data: prodRow, error: prodErr } = await supabase
+              .from("products")
+              .select("id, title, price, status")
+              .eq("id", data.product_id)
+              .maybeSingle();
 
-    return () => {
-      mounted = false;
-    };
-  }, [bookingId]);
+            if (prodErr) {
+              // permission error or other DB error
+              console.warn("fallback product fetch error", prodErr);
+            }
+
+            if (prodRow) {
+              data.products = prodRow;
+            } else {
+              // product not found (deleted)
+              console.info("product row not found for id", data.product_id);
+            }
+          } catch (e) {
+            console.warn("fallback product fetch threw", e);
+          }
+        }
+
+        setBooking(data);
+        // remove alert in production; useful for debugging:
+        // alert(JSON.stringify(data));
+      }
+    } catch (err) {
+      console.error("fetch booking catch", err);
+      toast.error("Failed to load booking.");
+      setBooking(null);
+    } finally {
+      if (mounted) setLoading(false);
+    }
+  })();
+
+  return () => {
+    mounted = false;
+  };
+}, [bookingId]);
+
 
   const isOwner =
     booking &&
@@ -241,8 +268,9 @@ export default function BookingDetailPage(): JSX.Element {
                   Product
                 </p>
                 <div className="font-semibold text-slate-900 dark:text-slate-50">
-                  {product?.title || "Unknown product"}
+                    {product?.title ?? (product === null ? "Product removed" : "Unknown product")}
                 </div>
+
               </div>
               {product?.status && (
                 <span className="text-xs text-slate-500">

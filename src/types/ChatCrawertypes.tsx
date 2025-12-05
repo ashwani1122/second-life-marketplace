@@ -1,7 +1,8 @@
 export type ChatDrawerProps = {
     chatOpen: boolean;
     sellerName?: string | null;
-    buyerName?: string | null;
+    partnerName:string | null;
+    partnerAvatarUrl    
     sellerAvatarUrl?: string | null; // Added seller avatar
     productTitle?: string | null;
     messages: any[];
