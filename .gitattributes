@@ -1,1 +1,10 @@
-public/howitworks.mp4 filter=lfs diff=lfs merge=lfs -text
+src/supabase/migrations/* linguist-generated=true
+src/supabase/seeds/* linguist-generated=true
+src/supabase/types/* linguist-generated=true
+src/supabase/functions/* linguist-generated=true
+src/supabase/views/* linguist-generated=true
+src/supabase/triggers/* linguist-generated=true
+src/supabase/policies/* linguist-generated=true
+src/supabase/tables/* linguist-generated=true
+src/supabase/extensions/* linguist-generated=true
+src/supabase/materialized_views/* linguist-generated=true

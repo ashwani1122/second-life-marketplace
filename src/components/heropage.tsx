@@ -71,7 +71,6 @@ const HeroSection = () => {
                         src={heroImageUrl} 
                             alt="Nexo App Hero Visual" 
                             className="w-[500px] h-auto object-contain rounded-3xl shadow-xl shadow-indigo-500/30 dark:shadow-[0_20px_60px_-10px_rgba(30,58,138,0.7)]" 
-                            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://placehold.co/500x500/1F2937/F9FAFB?text=Nexo+App+Mockup' }}
                         />
                         
                         {/* 5. FIX: Floating cards adjusted for light mode */}
