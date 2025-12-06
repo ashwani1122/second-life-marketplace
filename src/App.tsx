@@ -16,7 +16,7 @@ import ProductBookings from "./pages/ProductBooking";
 import SellerDashboard from "./pages/SellerDashboard";
 import NotificationsPage from "./pages/NotificationsPage";
 import BookingDetailPage from "./pages/BookingDetailsPage";
-import Landing from "./pages/landing";
+import Landing from "./pages/Landing";
 
 
 const queryClient = new QueryClient();
