@@ -8,7 +8,6 @@ import Auth from "./pages/Auth";
 import Browse from "./pages/Browse";
 import Sell from "./pages/Sell";
 import NotFound from "./pages/NotFound";
-// import { ProductPage } from "./pages/ProductPage";
 import Profile from "./pages/Profile";
 import { ChatGlobalListener } from "./components/chatGlobalListener";
 import InboxPage from "./pages/InboxPage";
@@ -18,6 +17,7 @@ import SellerDashboard from "./pages/SellerDashboard";
 import NotificationsPage from "./pages/NotificationsPage";
 import BookingDetailPage from "./pages/BookingDetailsPage";
 import Landing from "./pages/landing";
+
 
 const queryClient = new QueryClient();
 

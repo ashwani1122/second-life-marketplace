@@ -2,18 +2,13 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ShoppingBag,
-  Shield,
-  Zap,
-  Search,
+ 
   CheckCircle2,
-  Menu,
-  X,
-  MapPin,
+ 
   Camera,
   MessageSquare,
   DollarSign,
-  Sun,
-  Moon,
+
   ArrowRight,
   Facebook,
   Twitter,
@@ -28,7 +23,7 @@ import { FeatureGrid } from "@/components/Featurecard";
 // --- FIXED MOVING BORDER COMPONENT ---
 // Uses pathLength="1" to ensure the line travels the full perimeter perfectly
 
-export default function Landing() {
+export default function Landing(): JSX.Element {
   const [session, setSession] = useState<boolean>(false);
 
   useEffect(() => {
