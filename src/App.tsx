@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
-import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Browse from "./pages/Browse";
 import Sell from "./pages/Sell";
@@ -18,6 +17,7 @@ import ProductBookings from "./pages/ProductBooking";
 import SellerDashboard from "./pages/SellerDashboard";
 import NotificationsPage from "./pages/NotificationsPage";
 import BookingDetailPage from "./pages/BookingDetailsPage";
+import Landing from "./pages/landing";
 
 const queryClient = new QueryClient();
 
