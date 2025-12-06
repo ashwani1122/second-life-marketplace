@@ -18,7 +18,6 @@ import NotificationsPage from "./pages/NotificationsPage";
 import BookingDetailPage from "./pages/BookingDetailsPage";
 import Landing from "./pages/Landing";
 
-
 const queryClient = new QueryClient();
 
 const App = () => (
